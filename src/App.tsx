@@ -1,26 +1,23 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Route,
+  Link,
+  Routes,
+} from "react-router-dom";
+import AllPlayers from "./AllPlayers";
+import Player from "./Player";
 
-function App() {
+export default function Application() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+      <Route path="/" element={<AllPlayers />} />
+      <Route path="player">
+        <Route index element={<Player />} />
+        <Route path=":number" element={<Player />} />
+      </Route>
+    </Routes>
   );
 }
-
-export default App;
