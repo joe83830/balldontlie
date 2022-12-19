@@ -14,10 +14,7 @@ export default function Application() {
   return (
     <Routes>
       <Route path="/" element={<AllPlayers />} />
-      <Route path="player">
-        <Route index element={<Player />} />
-        <Route path=":number" element={<Player />} />
-      </Route>
+      <Route path="player/:id" element={<Player />} />
     </Routes>
   );
 }
