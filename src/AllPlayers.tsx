@@ -1,7 +1,7 @@
 import Pagination from "@mui/material/Pagination/Pagination";
 import { AgGridReact } from "ag-grid-react/lib/agGridReact";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { IAllPlayersMeta, IAllPlayersPlayer } from "./types";
+import { IAllPlayersMeta, IPlayer } from "./types";
 import { formatFetchAllPlayersUrl } from "./utils";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -9,9 +9,7 @@ import { Link } from "react-router-dom";
 import { ICellRendererParams } from "ag-grid-community/dist/lib/rendering/cellRenderers/iCellRenderer";
 
 export default function AllPlayers() {
-  const [allPlayerData, setAllPlayersData] = useState<Array<IAllPlayersPlayer>>(
-    []
-  );
+  const [allPlayerData, setAllPlayersData] = useState<Array<IPlayer>>([]);
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
@@ -19,11 +17,11 @@ export default function AllPlayers() {
     {
       field: "Name",
       cellRenderer: (params: ICellRendererParams) => {
-        console.log("In renderer");
-        console.log(params);
+        // console.log("In renderer");
+        // console.log(params);
         return (
           <Link
-            state={{ userId: params.data.id }}
+            state={{ playerId: params.data.id }}
             to={`player/${params.data.id}`}
           >
             {params.data.Name}
@@ -36,8 +34,8 @@ export default function AllPlayers() {
     { field: "position", filter: true },
     { field: "team", filter: true },
   ];
-  const agRef = useRef<AgGridReact<IAllPlayersPlayer> | null>(
-    {} as AgGridReact<IAllPlayersPlayer> | null
+  const agRef = useRef<AgGridReact<IPlayer> | null>(
+    {} as AgGridReact<IPlayer> | null
   );
 
   useEffect(() => {
@@ -46,7 +44,7 @@ export default function AllPlayers() {
     fetchAllPlayers(page, signal)
       .then((response) => {
         console.log(response.data);
-        const playersData = response.data.map((player: IAllPlayersPlayer) => ({
+        const playersData = response.data.map((player: IPlayer) => ({
           ...player,
           ...{ Name: `${player.first_name} ${player.last_name}` },
           ...{ team: player.team?.full_name },
@@ -78,7 +76,7 @@ export default function AllPlayers() {
   }
 
   function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
-    console.log("Changing page");
+    console.log("Changing page, page = ", value);
     setPage(value);
   }
 

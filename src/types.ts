@@ -6,17 +6,17 @@ export interface IAllPlayersMeta {
   total_pages: number;
 }
 
-export interface IAllPlayersPlayer {
+export interface IPlayer {
   first_name: string;
   height_feet: number | null;
   height_inches: number | null;
   id: number;
   last_name: string;
   position: string;
-  team: IAllPlayersTeam;
+  team: ITeam;
 }
 
-export interface IAllPlayersTeam {
+export interface ITeam {
   abbreviation: string;
   city: string;
   conference: string;
@@ -24,4 +24,44 @@ export interface IAllPlayersTeam {
   full_name: string;
   id: number;
   name: string;
+}
+
+export interface IStat {
+  id: number;
+  ast: number;
+  blk: number;
+  dreb: number;
+  fg3_pct: number;
+  fg3a: number;
+  fg3m: number;
+  fg_pct: number;
+  fga: number;
+  fgm: number;
+  ft_pct: number;
+  fta: number;
+  ftm: number;
+  game: IGame;
+  min: "13:24";
+  oreb: number;
+  pf: number;
+  player: IPlayer;
+  pts: number;
+  reb: number;
+  stl: number;
+  team: ITeam;
+  turnover: number;
+}
+
+export interface IGame {
+  id: number;
+  date: "2016-10-26T00:00:00.000Z";
+  home_team_id: number;
+  home_team_score: number;
+  period: number;
+  postseason: boolean;
+  season: number;
+  status: string;
+  time: " ";
+  visitor_team_id: number;
+  visitor_team_score: number;
 }
