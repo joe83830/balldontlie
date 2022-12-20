@@ -6,12 +6,21 @@ export interface IAllPlayersMeta {
   total_pages: number;
 }
 
-export interface IPlayer {
+export interface IPlayerSource {
   first_name: string;
   height_feet: number | null;
   height_inches: number | null;
   id: number;
   last_name: string;
+  position: string;
+  team: ITeam;
+}
+
+export interface IPlayerRow {
+  Name: string;
+  height_feet: number | null;
+  height_inches: number | null;
+  id: number;
   position: string;
   team: ITeam;
 }
@@ -44,7 +53,7 @@ export interface IStat {
   min: string;
   oreb: number;
   pf: number;
-  player: IPlayer;
+  player: IPlayerSource;
   pts: number;
   reb: number;
   stl: number;

@@ -1,5 +1,5 @@
 import Pagination from "@mui/material/Pagination/Pagination";
-import { AgGridReact } from "ag-grid-react/lib/agGridReact";
+import { AgGridReact } from "ag-grid-react";
 import React, {
   useCallback,
   useEffect,
@@ -7,18 +7,27 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IAllPlayersMeta, IPlayer } from "./types";
+import { IAllPlayersMeta, IPlayerRow, IPlayerSource } from "./types";
 import { formatFetchAllPlayersUrl } from "./utils";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { Link } from "react-router-dom";
-import { ICellRendererParams } from "ag-grid-community/dist/lib/rendering/cellRenderers/iCellRenderer";
+import { ICellRendererParams, Module, ModuleRegistry } from "ag-grid-community";
 import debounce from "lodash.debounce";
 import TextField from "@mui/material/TextField/TextField";
 import "./App.css";
+import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
+import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
+import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
+
+ModuleRegistry.registerModules([
+  RangeSelectionModule as Module,
+  RowGroupingModule as Module,
+  RichSelectModule as Module,
+]);
 
 export default function AllPlayers() {
-  const [allPlayerData, setAllPlayersData] = useState<Array<IPlayer>>([]);
+  const [allPlayerData, setAllPlayersData] = useState<Array<IPlayerRow>>([]);
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
@@ -28,29 +37,31 @@ export default function AllPlayers() {
     () => [
       {
         field: "Name",
-        cellRenderer: (params: ICellRendererParams) => {
-          // console.log("In renderer");
-          // console.log(params);
+        cellRenderer: (params: ICellRendererParams<IPlayerRow>) => {
           return (
             <Link
-              state={{ playerId: params.data.id }}
-              to={`player/${params.data.id}`}
+              state={{ playerId: params.data?.id }}
+              to={`player/${params.data?.id}`}
             >
-              {params.data.Name}
+              {params.data?.Name}
             </Link>
           );
         },
       },
       { field: "height_feet", filter: true },
       { field: "height_inches", filter: true },
-      { field: "position", filter: true },
-      { field: "team", filter: true },
+      { field: "position", enableRowGroup: true, filter: true },
+      {
+        field: "team",
+        filter: true,
+        enableRowGroup: true,
+      },
     ],
     []
   );
 
-  const agRef = useRef<AgGridReact<IPlayer> | null>(
-    {} as AgGridReact<IPlayer> | null
+  const agRef = useRef<AgGridReact<IPlayerRow> | null>(
+    {} as AgGridReact<IPlayerRow> | null
   );
 
   useEffect(() => {
@@ -78,11 +89,13 @@ export default function AllPlayers() {
         }
       );
       const jsonRes = await response.json();
-      const playersData = jsonRes.data.map((player: IPlayer) => ({
-        ...player,
-        ...{ Name: `${player.first_name} ${player.last_name}` },
-        ...{ team: player.team?.full_name },
-      }));
+      const playersData: IPlayerRow[] = jsonRes.data.map(
+        (player: IPlayerSource) => ({
+          ...player,
+          ...{ Name: `${player.first_name} ${player.last_name}` },
+          ...{ team: player.team?.full_name },
+        })
+      );
       setAllPlayersData(playersData);
       setMeta(jsonRes.meta);
       setIsLoading(false);
@@ -132,6 +145,9 @@ export default function AllPlayers() {
             rowData={allPlayerData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
+            animateRows={true}
+            rowSelection="multiple"
+            rowGroupPanelShow="always"
           />
           <Pagination
             count={meta.total_pages}

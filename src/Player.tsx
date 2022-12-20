@@ -3,12 +3,14 @@ import { AgGridReact } from "ag-grid-react/lib/agGridReact";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { playerPageColDef } from "./constants";
-import { IAllPlayersMeta, IPlayer, IStat } from "./types";
+import { IAllPlayersMeta, IPlayerSource, IStat } from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
 
 export default function Player() {
   const { state } = useLocation();
-  const [playerState, setPlayerState] = useState<IPlayer>({} as IPlayer);
+  const [playerState, setPlayerState] = useState<IPlayerSource>(
+    {} as IPlayerSource
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [seasons, setSeasons] = useState<number[]>([]);
   const [stats, setStats] = useState<IStat[]>([]);

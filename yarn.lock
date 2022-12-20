@@ -7,6 +7,42 @@
   resolved "https://registry.yarnpkg.com/@adobe/css-tools/-/css-tools-4.0.1.tgz#b38b444ad3aa5fedbb15f2f746dcd934226a12dd"
   integrity sha512-+u76oB43nOHrF4DDWRLWDCtci7f3QJoEBigemIdIeTi1ODqjx6Tad9NCVnPRwewWlKkVab5PlK8DCtPTyX7S8g==
 
+"@ag-grid-community/core@~28.2.1":
+  version "28.2.1"
+  resolved "https://registry.yarnpkg.com/@ag-grid-community/core/-/core-28.2.1.tgz#a74f5b724c89c0f69ef4af72964a274a25b93089"
+  integrity sha512-qGhqZhY8KbPlr3cJBVkNjGKu+cOyFc8IGvPcvlm0pjNC9cdxO/ct9Sa1Dg+k3ACCEroMEt1apBvnoOgurpvewQ==
+
+"@ag-grid-enterprise/core@~28.2.1":
+  version "28.2.1"
+  resolved "https://registry.yarnpkg.com/@ag-grid-enterprise/core/-/core-28.2.1.tgz#61fb4f158f42ecc0f5c0ec950407f714b26153d2"
+  integrity sha512-VzmD03YdyokPR8YQ3BOfJCSn2AwIRpFmu0U6/Smheyjlw84cFjdqI9Ef1GXLEUcKGB9dwnQESEfq9gIckwHcug==
+  dependencies:
+    "@ag-grid-community/core" "~28.2.1"
+
+"@ag-grid-enterprise/range-selection@^28.2.1":
+  version "28.2.1"
+  resolved "https://registry.yarnpkg.com/@ag-grid-enterprise/range-selection/-/range-selection-28.2.1.tgz#3637e5c5e33f27ba04ece3e5fd246224647cdfd1"
+  integrity sha512-9W66cL7sy1Mn3F3lOdTp/XrIILvLopbTKq1OMCI1YPCTHwzlo3C1Z1nS1HnHV9kgweKgVEXtf+FhoaoJATywbw==
+  dependencies:
+    "@ag-grid-community/core" "~28.2.1"
+    "@ag-grid-enterprise/core" "~28.2.1"
+
+"@ag-grid-enterprise/rich-select@^28.2.1":
+  version "28.2.1"
+  resolved "https://registry.yarnpkg.com/@ag-grid-enterprise/rich-select/-/rich-select-28.2.1.tgz#b5c900de93f3d9461334a4a82dcd29a1f44f7041"
+  integrity sha512-wmvI+txJLGRKXi9cFyeoS00rDWawhcTpMEJjXfeZ2zdjn8+C20oZAYyJo/xY0GjAah4imd5Z7JVO8a/DabYATA==
+  dependencies:
+    "@ag-grid-community/core" "~28.2.1"
+    "@ag-grid-enterprise/core" "~28.2.1"
+
+"@ag-grid-enterprise/row-grouping@^28.2.1":
+  version "28.2.1"
+  resolved "https://registry.yarnpkg.com/@ag-grid-enterprise/row-grouping/-/row-grouping-28.2.1.tgz#5146d780e24b8c383288c5ad6b7a4d6cf91efb94"
+  integrity sha512-uc8EJ7jB+wAdqm61DWXuoblJRjRf3YpS/l20hL4IGfV4NyUWZouAGuG964NkWYPJk8FUAeerAlUf8WbHaq2tXQ==
+  dependencies:
+    "@ag-grid-community/core" "~28.2.1"
+    "@ag-grid-enterprise/core" "~28.2.1"
+
 "@ampproject/remapping@^2.1.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@ampproject/remapping/-/remapping-2.2.0.tgz#56c133824780de3174aed5ab6834f3026790154d"
