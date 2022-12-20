@@ -1,7 +1,7 @@
 import Pagination from "@mui/material/Pagination/Pagination";
 import { AgGridReact } from "ag-grid-react/lib/agGridReact";
 import React, {
-  ChangeEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { ICellRendererParams } from "ag-grid-community/dist/lib/rendering/cellRenderers/iCellRenderer";
 import debounce from "lodash.debounce";
 import TextField from "@mui/material/TextField/TextField";
+import "./App.css";
 
 export default function AllPlayers() {
   const [allPlayerData, setAllPlayersData] = useState<Array<IPlayer>>([]);
@@ -23,27 +24,31 @@ export default function AllPlayers() {
   const [page, setPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const columnDefs = [
-    {
-      field: "Name",
-      cellRenderer: (params: ICellRendererParams) => {
-        // console.log("In renderer");
-        // console.log(params);
-        return (
-          <Link
-            state={{ playerId: params.data.id }}
-            to={`player/${params.data.id}`}
-          >
-            {params.data.Name}
-          </Link>
-        );
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "Name",
+        cellRenderer: (params: ICellRendererParams) => {
+          // console.log("In renderer");
+          // console.log(params);
+          return (
+            <Link
+              state={{ playerId: params.data.id }}
+              to={`player/${params.data.id}`}
+            >
+              {params.data.Name}
+            </Link>
+          );
+        },
       },
-    },
-    { field: "height_feet", filter: true },
-    { field: "height_inches", filter: true },
-    { field: "position", filter: true },
-    { field: "team", filter: true },
-  ];
+      { field: "height_feet", filter: true },
+      { field: "height_inches", filter: true },
+      { field: "position", filter: true },
+      { field: "team", filter: true },
+    ],
+    []
+  );
+
   const agRef = useRef<AgGridReact<IPlayer> | null>(
     {} as AgGridReact<IPlayer> | null
   );
@@ -51,29 +56,13 @@ export default function AllPlayers() {
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-    fetchAllPlayers(page, searchTerm, signal)
-      .then((response) => {
-        console.log(response.data);
-        const playersData = response.data.map((player: IPlayer) => ({
-          ...player,
-          ...{ Name: `${player.first_name} ${player.last_name}` },
-          ...{ team: player.team?.full_name },
-        }));
-        setAllPlayersData(playersData);
-        setMeta(response.meta);
-      })
-      .catch((err) => {
-        if (err.name == "AbortError") {
-          console.warn("Request was aborted");
-        } else {
-          console.warn(err);
-        }
-      });
+
+    fetchAllPlayers(page, searchTerm, signal);
 
     return () => {
       controller.abort();
     };
-  }, [page, searchTerm]);
+  }, [page]);
 
   async function fetchAllPlayers(
     targetPage: number,
@@ -81,25 +70,40 @@ export default function AllPlayers() {
     signal: AbortSignal
   ) {
     setIsLoading(true);
-    const response = await fetch(formatFetchAllPlayersUrl(targetPage, search), {
-      signal,
-    });
-    const jsonRes = await response.json();
-    setIsLoading(false);
-    return jsonRes;
+    try {
+      const response = await fetch(
+        formatFetchAllPlayersUrl(targetPage, search),
+        {
+          signal,
+        }
+      );
+      const jsonRes = await response.json();
+      const playersData = jsonRes.data.map((player: IPlayer) => ({
+        ...player,
+        ...{ Name: `${player.first_name} ${player.last_name}` },
+        ...{ team: player.team?.full_name },
+      }));
+      setAllPlayersData(playersData);
+      setMeta(jsonRes.meta);
+      setIsLoading(false);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  const debouncedFetch = useCallback(debounce(fetchAllPlayers, 1000), []);
+
+  function handleSearch(term: string) {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    setSearchTerm(term);
+    debouncedFetch(page, searchTerm, signal);
   }
 
   function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
     setPage(value);
   }
 
-  function searchPlayer(
-    e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
-  ) {
-    setSearchTerm(e.target.value);
-  }
-
-  const debouncedSearch = debounce(searchPlayer, 500);
   const defaultColDef = useMemo(
     () => ({
       sortable: true,
@@ -111,21 +115,24 @@ export default function AllPlayers() {
     <>
       {isLoading && <div>LOADING</div>}{" "}
       {!isLoading && (
-        <div>
+        <div className="u-flex">
+          {/* <div className="hamburger-padding"> */}
           <TextField
             id="outlined-basic"
-            label="Outlined"
+            label="Search Player"
             variant="outlined"
-            onChange={debouncedSearch}
+            onChange={(e) => handleSearch(e.target.value)}
+            value={searchTerm}
           />
-          <div className="ag-theme-alpine" style={{ height: 400, width: 600 }}>
-            <AgGridReact
-              ref={agRef}
-              rowData={allPlayerData}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-            />
-          </div>
+          {/* </div> */}
+
+          <AgGridReact
+            className="ag-theme-alpine grid-container"
+            ref={agRef}
+            rowData={allPlayerData}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+          />
           <Pagination
             count={meta.total_pages}
             page={meta.current_page}

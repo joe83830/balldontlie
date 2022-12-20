@@ -36,3 +36,25 @@
     transform: rotate(360deg);
   }
 }
+
+.u-flex {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+  height: 100%;
+}
+
+.hamburger-padding {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}

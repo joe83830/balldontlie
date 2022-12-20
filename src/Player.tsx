@@ -68,14 +68,13 @@ export default function Player() {
     <>
       {isLoading && <div>LOADING</div>}{" "}
       {!isLoading && (
-        <div>
-          <div className="ag-theme-alpine" style={{ height: 400, width: 600 }}>
-            <AgGridReact
-              rowData={stats}
-              columnDefs={playerPageColDef}
-              defaultColDef={defaultColDef}
-            />
-          </div>
+        <div className="u-flex">
+          <AgGridReact
+            className="ag-theme-alpine"
+            rowData={stats}
+            columnDefs={playerPageColDef}
+            defaultColDef={defaultColDef}
+          />
           <Pagination
             count={meta.total_pages}
             page={meta.current_page}
