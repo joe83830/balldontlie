@@ -41,7 +41,7 @@ export interface IStat {
   fta: number;
   ftm: number;
   game: IGame;
-  min: "13:24";
+  min: string;
   oreb: number;
   pf: number;
   player: IPlayer;
@@ -54,7 +54,7 @@ export interface IStat {
 
 export interface IGame {
   id: number;
-  date: "2016-10-26T00:00:00.000Z";
+  date: string;
   home_team_id: number;
   home_team_score: number;
   period: number;

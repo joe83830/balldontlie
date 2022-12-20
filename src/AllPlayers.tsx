@@ -1,18 +1,28 @@
 import Pagination from "@mui/material/Pagination/Pagination";
 import { AgGridReact } from "ag-grid-react/lib/agGridReact";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { IAllPlayersMeta, IPlayer } from "./types";
 import { formatFetchAllPlayersUrl } from "./utils";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { Link } from "react-router-dom";
 import { ICellRendererParams } from "ag-grid-community/dist/lib/rendering/cellRenderers/iCellRenderer";
+import debounce from "lodash.debounce";
+import TextField from "@mui/material/TextField/TextField";
 
 export default function AllPlayers() {
   const [allPlayerData, setAllPlayersData] = useState<Array<IPlayer>>([]);
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   const columnDefs = [
     {
       field: "Name",
@@ -41,7 +51,7 @@ export default function AllPlayers() {
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-    fetchAllPlayers(page, signal)
+    fetchAllPlayers(page, searchTerm, signal)
       .then((response) => {
         console.log(response.data);
         const playersData = response.data.map((player: IPlayer) => ({
@@ -63,11 +73,15 @@ export default function AllPlayers() {
     return () => {
       controller.abort();
     };
-  }, [page]);
+  }, [page, searchTerm]);
 
-  async function fetchAllPlayers(targetPage: number, signal: AbortSignal) {
+  async function fetchAllPlayers(
+    targetPage: number,
+    search: string,
+    signal: AbortSignal
+  ) {
     setIsLoading(true);
-    const response = await fetch(formatFetchAllPlayersUrl(targetPage), {
+    const response = await fetch(formatFetchAllPlayersUrl(targetPage, search), {
       signal,
     });
     const jsonRes = await response.json();
@@ -76,10 +90,16 @@ export default function AllPlayers() {
   }
 
   function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
-    console.log("Changing page, page = ", value);
     setPage(value);
   }
 
+  function searchPlayer(
+    e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) {
+    setSearchTerm(e.target.value);
+  }
+
+  const debouncedSearch = debounce(searchPlayer, 500);
   const defaultColDef = useMemo(
     () => ({
       sortable: true,
@@ -92,6 +112,12 @@ export default function AllPlayers() {
       {isLoading && <div>LOADING</div>}{" "}
       {!isLoading && (
         <div>
+          <TextField
+            id="outlined-basic"
+            label="Outlined"
+            variant="outlined"
+            onChange={debouncedSearch}
+          />
           <div className="ag-theme-alpine" style={{ height: 400, width: 600 }}>
             <AgGridReact
               ref={agRef}
