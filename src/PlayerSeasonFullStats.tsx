@@ -12,10 +12,8 @@ export default function PlayerSeasonFull() {
     {} as IPlayerSource
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [seasons, setSeasons] = useState<Set<string>>(
-    new Set(["2022", "2021"])
-  );
-  const [stats, setStats] = useState<IStat[]>([]);
+  const [seasons, setSeasons] = useState<Array<string>>(["2022"]);
+  const [stats, setStats] = useState<Record<string, IStat[]>>();
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
   const [page, setPage] = useState<number>(1);
 
@@ -53,7 +51,10 @@ export default function PlayerSeasonFull() {
         season: stat.game.season,
         team: stat.team?.full_name,
       }));
-      setStats(massagedStats);
+      setStats((prevStats) => ({
+        ...prevStats,
+        ...{ [seasons[seasons.length - 1]]: massagedStats },
+      }));
       setMeta(statResponseJson.meta);
     } catch (e) {
       console.warn(e);
@@ -75,20 +76,25 @@ export default function PlayerSeasonFull() {
 
   function handleAddSeason(season: string) {
     setSeasons((curSeason) => {
-      curSeason.add(season);
-      return new Set(curSeason);
+      if (!curSeason.includes(season)) {
+        return [...curSeason, season];
+      } else {
+        return curSeason;
+      }
     });
   }
 
   const deleteSeason = (season: string) => {
     return () => {
-      console.log(`Deleting season ${season}`);
-      setSeasons((curSeason) => {
-        curSeason.delete(season);
-        return new Set(curSeason);
+      setStats((curStats) => {
+        if (!!curStats) delete curStats[season];
+        return curStats;
       });
+      setSeasons((curSeasons) => curSeasons.filter((s) => s !== season));
     };
   };
+
+  const getRowData = () => {};
 
   return (
     <>
@@ -120,7 +126,7 @@ export default function PlayerSeasonFull() {
             </div>
             <AgGridReact
               className="ag-theme-alpine"
-              rowData={stats}
+              rowData={(!!stats && Object.values(stats).flat()) || []}
               columnDefs={playerPageColDef}
               defaultColDef={defaultColDef}
               animateRows={true}
