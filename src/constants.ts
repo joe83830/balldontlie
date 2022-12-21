@@ -9,8 +9,12 @@ export const getSinglePlayerApi: string =
 
 export const getStatsApi: string = "https://www.balldontlie.io/api/v1/stats";
 
+export const getSeasonAverageApi: string =
+  "https://www.balldontlie.io/api/v1/season_averages";
+
 export const playerPageColDef = [
-  { field: "game", filter: true },
+  { field: "date" },
+  { field: "season", filter: true, enableRowGroup: true, rowGroup: true },
   { field: "ast", filter: true },
   { field: "blk", filter: true },
   { field: "dreb", filter: true },
@@ -23,7 +27,6 @@ export const playerPageColDef = [
   { field: "ft_pct", filter: true },
   { field: "fta", filter: true },
   { field: "ftm", filter: true },
-  { field: "game", filter: true },
   { field: "min", filter: true },
   { field: "oreb", filter: true },
   { field: "pf", filter: true },

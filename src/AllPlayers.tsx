@@ -19,6 +19,7 @@ import "./App.css";
 import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
 import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
 import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
+import CircularProgress from "@mui/material/CircularProgress/CircularProgress";
 
 ModuleRegistry.registerModules([
   RangeSelectionModule as Module,
@@ -38,10 +39,11 @@ export default function AllPlayers() {
       {
         field: "Name",
         cellRenderer: (params: ICellRendererParams<IPlayerRow>) => {
+          console.log(params.data);
           return (
             <Link
-              state={{ playerId: params.data?.id }}
-              to={`player/${params.data?.id}`}
+              state={{ playerInfo: params.data }}
+              to={`playerFullStat/${params.data?.id}`}
             >
               {params.data?.Name}
             </Link>
@@ -126,34 +128,39 @@ export default function AllPlayers() {
 
   return (
     <>
-      {isLoading && <div>LOADING</div>}{" "}
+      {isLoading && (
+        <div className="loading-spinner">
+          <CircularProgress />
+        </div>
+      )}
       {!isLoading && (
-        <div className="u-flex">
-          {/* <div className="hamburger-padding"> */}
-          <TextField
-            id="outlined-basic"
-            label="Search Player"
-            variant="outlined"
-            onChange={(e) => handleSearch(e.target.value)}
-            value={searchTerm}
-          />
-          {/* </div> */}
+        <div className="u-flex-col">
+          <div className="u-flex-inner">
+            <TextField
+              id="outlined-basic"
+              label="Search Player"
+              variant="outlined"
+              onChange={(e) => handleSearch(e.target.value)}
+              value={searchTerm}
+            />
+            {/* </div> */}
 
-          <AgGridReact
-            className="ag-theme-alpine grid-container"
-            ref={agRef}
-            rowData={allPlayerData}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            animateRows={true}
-            rowSelection="multiple"
-            rowGroupPanelShow="always"
-          />
-          <Pagination
-            count={meta.total_pages}
-            page={meta.current_page}
-            onChange={handlePageChange}
-          />
+            <AgGridReact
+              className="ag-theme-alpine grid-container"
+              ref={agRef}
+              rowData={allPlayerData}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              animateRows={true}
+              rowSelection="multiple"
+              rowGroupPanelShow="always"
+            />
+            <Pagination
+              count={meta.total_pages}
+              page={meta.current_page}
+              onChange={handlePageChange}
+            />
+          </div>
         </div>
       )}
     </>

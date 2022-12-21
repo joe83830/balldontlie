@@ -74,3 +74,11 @@ export interface IGame {
   visitor_team_id: number;
   visitor_team_score: number;
 }
+
+export interface Imeta {
+  total_pages: number;
+  current_page: number;
+  next_page: number;
+  per_page: number;
+  total_count: number;
+}
