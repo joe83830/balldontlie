@@ -9,7 +9,7 @@ export function formatFetchAllPlayersUrl(
   page: number,
   searchTerm: string = ""
 ) {
-  return `${getAllPlayersApi}?page=${page}&search=${searchTerm}`;
+  return `${getAllPlayersApi}?page=${page}&search=${searchTerm}&per_page=100`;
 }
 
 export function formatFetchSinglePlayerUrl(playerId: number) {

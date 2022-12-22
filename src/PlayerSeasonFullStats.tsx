@@ -1,17 +1,16 @@
 import { Chip, CircularProgress, Pagination, TextField } from "@mui/material";
 import { AgGridReact } from "ag-grid-react/lib/agGridReact";
-import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { playerPageColDef } from "./constants";
 import { IAllPlayersMeta, IPlayerSource, IStat } from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
 
-export default function PlayerSeasonFull() {
+export default function PlayerSeasonFull(): JSX.Element {
   const { state } = useLocation();
   const [playerState, setPlayerState] = useState<IPlayerSource>(
     {} as IPlayerSource
   );
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [seasons, setSeasons] = useState<Array<string>>(["2022"]);
   const [stats, setStats] = useState<Record<string, IStat[]>>();
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
@@ -20,8 +19,7 @@ export default function PlayerSeasonFull() {
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-    console.log("In useEffect");
-    fetchPlayerAndStat([state?.playerInfo?.id], signal);
+    fetchPlayerAndStat([state?.playerId], signal);
 
     return () => {
       controller.abort();
@@ -29,8 +27,6 @@ export default function PlayerSeasonFull() {
   }, [seasons, page]);
 
   async function fetchPlayerAndStat(playerId: number[], signal: AbortSignal) {
-    setIsLoading(true);
-
     try {
       const [playerResponse, statResponse] = await Promise.all([
         fetch(formatFetchSinglePlayerUrl(playerId[0]), {
@@ -59,8 +55,6 @@ export default function PlayerSeasonFull() {
     } catch (e) {
       console.warn(e);
     }
-
-    setIsLoading(false);
   }
 
   const defaultColDef = useMemo(
@@ -94,34 +88,29 @@ export default function PlayerSeasonFull() {
     };
   };
 
-  const getRowData = () => {};
-
   return (
     <>
-      {isLoading && (
-        <div className="loading-spinner">
-          <CircularProgress />
-        </div>
-      )}
-      {!isLoading && (
+      {
         <div className="u-flex-col">
           <div className="u-flex-inner">
-            <div>{JSON.stringify(state?.playerInfo, null, 2)}</div>
+            <div>{JSON.stringify(playerState, null, 2)}</div>
             <div className="hamburger-margin u-flex-row">
-              <TextField
-                id="outlined-basic"
-                label="Add season"
-                variant="outlined"
-                // onChange={(e) => handleAddSeason(e.target.value)}
-                onKeyPress={(event) => {
-                  if (event.key === "Enter") {
-                    console.log(event);
-                    handleAddSeason((event.target as any).value);
-                  }
-                }}
-              />
+              <div className="right-margin">
+                <TextField
+                  id="outlined-basic"
+                  label="Add season"
+                  variant="outlined"
+                  onKeyPress={(event) => {
+                    if (event.key === "Enter") {
+                      handleAddSeason((event.target as any).value);
+                    }
+                  }}
+                />
+              </div>
               {Array.from(seasons).map((season) => (
-                <Chip label={season} onDelete={deleteSeason(season)} />
+                <div className="right-margin">
+                  <Chip label={season} onDelete={deleteSeason(season)} />
+                </div>
               ))}
             </div>
             <AgGridReact
@@ -132,15 +121,16 @@ export default function PlayerSeasonFull() {
               animateRows={true}
               rowSelection="multiple"
               rowGroupPanelShow="always"
+              overlayNoRowsTemplate="Please wait while data loads..."
             />
             <Pagination
-              count={meta.total_pages}
-              page={meta.current_page}
+              count={meta?.total_pages || 1}
+              page={meta?.current_page || 1}
               onChange={handlePageChange}
             />
           </div>
         </div>
-      )}
+      }
     </>
   );
 }

@@ -30,7 +30,6 @@ ModuleRegistry.registerModules([
 export default function AllPlayers() {
   const [allPlayerData, setAllPlayersData] = useState<Array<IPlayerRow>>([]);
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -39,10 +38,9 @@ export default function AllPlayers() {
       {
         field: "Name",
         cellRenderer: (params: ICellRendererParams<IPlayerRow>) => {
-          console.log(params.data);
           return (
             <Link
-              state={{ playerInfo: params.data }}
+              state={{ playerId: params.data?.id }}
               to={`playerFullStat/${params.data?.id}`}
             >
               {params.data?.Name}
@@ -50,20 +48,17 @@ export default function AllPlayers() {
           );
         },
       },
-      { field: "height_feet", filter: true },
+      { field: "height_feet", filter: true, enableRowGroup: true },
       { field: "height_inches", filter: true },
       { field: "position", enableRowGroup: true, filter: true },
       {
         field: "team",
         filter: true,
         enableRowGroup: true,
+        flex: 1,
       },
     ],
     []
-  );
-
-  const agRef = useRef<AgGridReact<IPlayerRow> | null>(
-    {} as AgGridReact<IPlayerRow> | null
   );
 
   useEffect(() => {
@@ -82,7 +77,6 @@ export default function AllPlayers() {
     search: string,
     signal: AbortSignal
   ) {
-    setIsLoading(true);
     try {
       const response = await fetch(
         formatFetchAllPlayersUrl(targetPage, search),
@@ -100,7 +94,6 @@ export default function AllPlayers() {
       );
       setAllPlayersData(playersData);
       setMeta(jsonRes.meta);
-      setIsLoading(false);
     } catch (e) {
       console.warn(e);
     }
@@ -125,17 +118,11 @@ export default function AllPlayers() {
     }),
     []
   );
-
   return (
     <>
-      {isLoading && (
-        <div className="loading-spinner">
-          <CircularProgress />
-        </div>
-      )}
-      {!isLoading && (
+      {
         <div className="u-flex-col">
-          <div className="u-flex-inner">
+          <div className="u-flex-inner" id="inner">
             <TextField
               id="outlined-basic"
               label="Search Player"
@@ -147,22 +134,24 @@ export default function AllPlayers() {
 
             <AgGridReact
               className="ag-theme-alpine grid-container"
-              ref={agRef}
               rowData={allPlayerData}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="multiple"
               rowGroupPanelShow="always"
+              overlayNoRowsTemplate="Please wait while data loads..."
             />
-            <Pagination
-              count={meta.total_pages}
-              page={meta.current_page}
-              onChange={handlePageChange}
-            />
+            <div className="hamburger-margin">
+              <Pagination
+                count={meta?.total_pages || 1}
+                page={meta?.current_page || 1}
+                onChange={handlePageChange}
+              />
+            </div>
           </div>
         </div>
-      )}
+      }
     </>
   );
 }
