@@ -115,6 +115,7 @@ export default function PlayerSeasonFull(): JSX.Element {
 
   function handleAddSeason(e: React.KeyboardEvent<HTMLDivElement>) {
     const season = (e.target as HTMLInputElement).value;
+    (e.target as HTMLInputElement).value = "";
     setSeasons((curSeasons) => {
       if (curSeasons.length === 0) {
         setStats({});
@@ -125,6 +126,7 @@ export default function PlayerSeasonFull(): JSX.Element {
         return curSeasons;
       }
     });
+    e.preventDefault();
   }
 
   const deleteSeason = (season: string) => {
