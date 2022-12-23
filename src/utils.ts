@@ -9,6 +9,9 @@ export function formatFetchAllPlayersUrl(
   page: number,
   searchTerm: string = ""
 ) {
+  if (searchTerm.length > 0) {
+    return `${getAllPlayersApi}?search=${searchTerm}`;
+  }
   return `${getAllPlayersApi}?page=${page}&search=${searchTerm}&per_page=100`;
 }
 

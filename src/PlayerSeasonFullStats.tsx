@@ -1,34 +1,37 @@
 import { Chip, CircularProgress, Pagination, TextField } from "@mui/material";
 import { AgGridReact } from "ag-grid-react/lib/agGridReact";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { createSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { playerPageColDef } from "./constants";
 import { IAllPlayersMeta, IPlayerSource, IStat } from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
 
 export default function PlayerSeasonFull(): JSX.Element {
-  const { state } = useLocation();
-  const [playerState, setPlayerState] = useState<IPlayerSource>({
-    first_name: "N/A",
-    height_feet: null,
-    height_inches: null,
-    id: 1,
-    last_name: "N/A",
-    position: "N/A",
-    team: {
-      abbreviation: "N/A",
-      city: "N/A",
-      conference: "N/A",
-      division: "N/A",
-      full_name: "N/A",
-      id: 1,
-      name: "N/A",
-    },
-  });
+  const [playerState, setPlayerState] = useState<IPlayerSource>();
+  //   {
+  //   first_name: "N/A",
+  //   height_feet: null,
+  //   height_inches: null,
+  //   id: 1,
+  //   last_name: "N/A",
+  //   position: "N/A",
+  //   team: {
+  //     abbreviation: "N/A",
+  //     city: "N/A",
+  //     conference: "N/A",
+  //     division: "N/A",
+  //     full_name: "N/A",
+  //     id: 1,
+  //     name: "N/A",
+  //   },
+  // }
+  const { state, search } = useLocation();
+  const navigate = useNavigate();
+  const query = new URLSearchParams(search);
+  const page = parseInt(query.get("page") || "1", 10);
   const [seasons, setSeasons] = useState<Array<string>>(["2022"]);
   const [stats, setStats] = useState<Record<string, IStat[]>>();
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
-  const [page, setPage] = useState<number>(1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,10 +105,15 @@ export default function PlayerSeasonFull(): JSX.Element {
   );
 
   function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
-    setPage(value);
+    navigate({
+      pathname: "/playerFullStat",
+      search: createSearchParams({
+        page: value.toString(),
+      }).toString(),
+    });
   }
 
-  function handleAddSeason(e: KeyboardEvent<HTMLDivElement>) {
+  function handleAddSeason(e: React.KeyboardEvent<HTMLDivElement>) {
     const season = (e.target as HTMLInputElement).value;
     setSeasons((curSeasons) => {
       if (curSeasons.length === 0) {
@@ -129,28 +137,35 @@ export default function PlayerSeasonFull(): JSX.Element {
     };
   };
   function getHeight() {
-    const formattedHeight = !!playerState.height_feet
-      ? `${playerState.height_feet} ' ${playerState.height_inches} "`
-      : "N/A";
-    return `Height: ${formattedHeight}`;
+    if (!!playerState) {
+      const formattedHeight = !!playerState.height_feet
+        ? `${playerState.height_feet} ' ${playerState.height_inches} "`
+        : "N/A";
+      return `Height: ${formattedHeight}`;
+    }
   }
-  if (!!stats) console.log(Object.values(stats));
   return (
     <>
       {
         <div className="u-flex-col">
           <div className="u-flex-inner">
-            <h3>{`${playerState.first_name} ${playerState.last_name}`}</h3>
-            <div className="u-flex-row">
-              <div className="stack-x">
-                <div className="hamburger-margin">{`Position: ${playerState.position}`}</div>
-                <div className="hamburger-margin">{getHeight()}</div>
-              </div>
-              <div>
-                <div className="hamburger-margin">{`Latest Team: ${playerState.team.city} ${playerState.team.name}`}</div>
-                <div className="hamburger-margin">{`Conference / Division: ${playerState.team.conference} / ${playerState.team.division}`}</div>
-              </div>
-            </div>
+            {!playerState && <CircularProgress />}
+            {!!playerState && (
+              <>
+                <h3>{`${playerState.first_name} ${playerState.last_name}`}</h3>
+                <div className="u-flex-row">
+                  <div className="stack-x">
+                    <div className="hamburger-margin">{`Position: ${playerState.position}`}</div>
+                    <div className="hamburger-margin">{getHeight()}</div>
+                  </div>
+                  <div>
+                    <div className="hamburger-margin">{`Latest Team: ${playerState.team.city} ${playerState.team.name}`}</div>
+                    <div className="hamburger-margin">{`Conference / Division: ${playerState.team.conference} / ${playerState.team.division}`}</div>
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="hamburger-margin u-flex-row">
               <div className="right-margin">
                 <TextField
@@ -182,7 +197,7 @@ export default function PlayerSeasonFull(): JSX.Element {
             />
             <Pagination
               count={meta?.total_pages || 1}
-              page={meta?.current_page || 1}
+              page={page}
               onChange={handlePageChange}
             />
           </div>

@@ -11,7 +11,12 @@ import { IAllPlayersMeta, IPlayerRow, IPlayerSource } from "./types";
 import { formatFetchAllPlayersUrl } from "./utils";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { Link } from "react-router-dom";
+import {
+  createSearchParams,
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { ICellRendererParams, Module, ModuleRegistry } from "ag-grid-community";
 import debounce from "lodash.debounce";
 import TextField from "@mui/material/TextField/TextField";
@@ -20,6 +25,7 @@ import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
 import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
 import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
 import CircularProgress from "@mui/material/CircularProgress/CircularProgress";
+import { PaginationItem } from "@mui/material";
 
 ModuleRegistry.registerModules([
   RangeSelectionModule as Module,
@@ -28,10 +34,14 @@ ModuleRegistry.registerModules([
 ]);
 
 export default function AllPlayers() {
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  const page = parseInt(query.get("page") || "1", 10);
+  const existingSearchTerm = query.get("searchTerm") || "";
+  const navigate = useNavigate();
   const [allPlayerData, setAllPlayersData] = useState<Array<IPlayerRow>>([]);
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
-  const [page, setPage] = useState<number>(1);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>(existingSearchTerm);
 
   const columnDefs = useMemo(
     () => [
@@ -60,7 +70,6 @@ export default function AllPlayers() {
     ],
     []
   );
-
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
@@ -92,6 +101,13 @@ export default function AllPlayers() {
           ...{ team: player.team?.full_name },
         })
       );
+      navigate({
+        pathname: "/",
+        search: createSearchParams({
+          page: page.toString(),
+          searchTerm: search,
+        }).toString(),
+      });
       setAllPlayersData(playersData);
       setMeta(jsonRes.meta);
     } catch (e) {
@@ -101,15 +117,21 @@ export default function AllPlayers() {
 
   const debouncedFetch = useCallback(debounce(fetchAllPlayers, 1000), []);
 
+  function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
+    navigate({
+      pathname: "/",
+      search: createSearchParams({
+        page: value.toString(),
+        searchTerm: searchTerm,
+      }).toString(),
+    });
+  }
+
   function handleSearch(term: string) {
     const controller = new AbortController();
     const signal = controller.signal;
     setSearchTerm(term);
     debouncedFetch(page, searchTerm, signal);
-  }
-
-  function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
-    setPage(value);
   }
 
   const defaultColDef = useMemo(
@@ -145,7 +167,7 @@ export default function AllPlayers() {
             <div className="hamburger-margin">
               <Pagination
                 count={meta?.total_pages || 1}
-                page={meta?.current_page || 1}
+                page={page}
                 onChange={handlePageChange}
               />
             </div>
