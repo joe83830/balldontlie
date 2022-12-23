@@ -24,8 +24,6 @@ import "./App.css";
 import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
 import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
 import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
-import CircularProgress from "@mui/material/CircularProgress/CircularProgress";
-import { PaginationItem } from "@mui/material";
 
 ModuleRegistry.registerModules([
   RangeSelectionModule as Module,
@@ -131,7 +129,7 @@ export default function AllPlayers() {
     const controller = new AbortController();
     const signal = controller.signal;
     setSearchTerm(term);
-    debouncedFetch(page, searchTerm, signal);
+    debouncedFetch(page, term, signal);
   }
 
   const defaultColDef = useMemo(
