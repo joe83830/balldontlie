@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Imeta, IStat } from "./types";
+import { Imeta, IStatSource } from "./types";
 import { formatFetchStats } from "./utils";
 
 export function PlayerSeasonAverageStats() {

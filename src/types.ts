@@ -35,7 +35,7 @@ export interface ITeam {
   name: string;
 }
 
-export interface IStat {
+export interface IStatSource {
   id: number;
   ast: number;
   blk: number;
@@ -58,6 +58,33 @@ export interface IStat {
   reb: number;
   stl: number;
   team: ITeam;
+  turnover: number;
+}
+
+export interface IStatRow {
+  id: number;
+  ast: number;
+  blk: number;
+  dreb: number;
+  fg3_pct: { fg3_pct: number; fg3a: number; fg3m: number };
+  fg3a: number;
+  fg3m: number;
+  fg_pct: { fg_pct: number; fga: number; fgm: number };
+  fga: number;
+  fgm: number;
+  ft_pct: { ft_pct: number; fta: number; ftm: number };
+  fta: number;
+  ftm: number;
+  date: string;
+  season: number;
+  min: number;
+  oreb: number;
+  pf: number;
+  player: IPlayerSource;
+  pts: number;
+  reb: number;
+  stl: number;
+  team: string;
   turnover: number;
 }
 
