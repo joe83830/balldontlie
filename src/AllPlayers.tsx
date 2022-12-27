@@ -56,8 +56,21 @@ export default function AllPlayers() {
           );
         },
       },
-      { field: "height_feet", filter: true, enableRowGroup: true },
-      { field: "height_inches", filter: true },
+      {
+        field: "height_feet",
+        filter: "agNumberColumnFilter",
+        enableRowGroup: true,
+      },
+      {
+        field: "height_inches",
+        filter: "agNumberColumnFilter",
+        enableRowGroup: true,
+      },
+      {
+        field: "weight_pounds",
+        filter: "agNumberColumnFilter",
+        enableRowGroup: true,
+      },
       { field: "position", enableRowGroup: true, filter: true },
       {
         field: "team",

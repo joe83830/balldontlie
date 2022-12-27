@@ -13,6 +13,8 @@ export default function PlayerSeasonFull(): JSX.Element {
   const page = parseInt(query.get("page") || "1", 10);
   const [seasons, setSeasons] = useState<Array<string>>(["2022"]);
   const [stats, setStats] = useState<Record<string, IStatRow[]>>();
+  const [noDataError, setNoDataError] = useState<string>("");
+  const [availableSeason, setAvailableSeason] = useState<string>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -28,6 +30,7 @@ export default function PlayerSeasonFull(): JSX.Element {
     const controller = new AbortController();
     const signal = controller.signal;
     fetchPlayer([state?.playerId], signal);
+    fetchInitialStat([state?.playerId], signal);
 
     return () => {
       controller.abort();
@@ -48,7 +51,17 @@ export default function PlayerSeasonFull(): JSX.Element {
       console.warn(e);
     }
   }
-
+  async function fetchInitialStat(playerId: number[], signal: AbortSignal) {
+    try {
+      const statResponse = await fetch(formatFetchStats(playerId, [], page), {
+        signal,
+      });
+      const statResponseJson = await statResponse.json();
+      setAvailableSeason(statResponseJson.data[0].game.season);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
   async function fetchStats(playerId: number[], signal: AbortSignal) {
     if (seasons.length === 0) {
       return;
@@ -62,6 +75,11 @@ export default function PlayerSeasonFull(): JSX.Element {
       );
 
       const statResponseJson = await statResponse.json();
+
+      if (statResponseJson.data.length === 0) {
+        setNoDataError(seasons[seasons.length - 1]);
+      }
+
       const massagedStats = [] as IStatRow[];
       statResponseJson.data.forEach((stat: IStatSource) => {
         if (stat.min !== "00") {
@@ -282,6 +300,9 @@ export default function PlayerSeasonFull(): JSX.Element {
 
   const deleteSeason = (season: string) => {
     return () => {
+      if (season === noDataError) {
+        setNoDataError("");
+      }
       setStats((curStats) => {
         if (!!curStats) delete curStats[season];
         return curStats;
@@ -338,6 +359,11 @@ export default function PlayerSeasonFull(): JSX.Element {
                 </div>
               ))}
             </div>
+            {noDataError && (
+              <div
+                style={{ color: "red", marginBottom: "12px" }}
+              >{`No Data for season ${noDataError}, try ${availableSeason}!`}</div>
+            )}
             <AgGridReact
               className="ag-theme-alpine"
               rowData={(!!stats && Object.values(stats).flat()) || []}
