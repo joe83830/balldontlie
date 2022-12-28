@@ -1,10 +1,12 @@
 import { Chip, CircularProgress, TextField } from "@mui/material";
-import { IAggFuncParams, ValueFormatterParams } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react/lib/agGridReact";
+import { IAggFuncParams, ValueFormatterParams } from "@ag-grid-community/core";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { IPlayerSource, IStatRow, IStatSource } from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
+import { AgGridReact } from "@ag-grid-community/react";
+import "@ag-grid-community/styles/ag-grid.css";
+import "@ag-grid-community/styles/ag-theme-alpine.css";
 
 export default function PlayerSeasonFull(): JSX.Element {
   const [playerState, setPlayerState] = useState<IPlayerSource>();
@@ -374,6 +376,7 @@ export default function PlayerSeasonFull(): JSX.Element {
               rowGroupPanelShow="always"
               overlayNoRowsTemplate="Please wait while data loads..."
               suppressAggFuncInHeader={true}
+              sideBar={true}
             />
           </div>
         </div>

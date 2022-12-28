@@ -10,12 +10,13 @@ import {
 import AllPlayers from "./AllPlayers";
 import PlayerSeasonFull from "./PlayerSeasonFullStats";
 import { PlayerSeasonAverageStats } from "./PlayerSeasonAverage";
+import { GridExample } from "./GridExample";
 
 export default function Application() {
   return (
     <Routes>
       <Route path="/" element={<AllPlayers />} />
-      <Route path="playerAverage/:id" element={<PlayerSeasonAverageStats />} />
+      <Route path="demo" element={<GridExample />} />
       <Route path="playerFullStat/:id" element={<PlayerSeasonFull />} />
     </Routes>
   );
