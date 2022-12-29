@@ -13,9 +13,6 @@ import {
   IStatSource,
   FGATYPE,
   FGMTYPE,
-  FGPFG,
-  FGPCollection,
-  ObjectType,
 } from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
 import { AgGridReact } from "@ag-grid-community/react";
@@ -25,13 +22,18 @@ import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-mod
 import { ColumnsToolPanelModule } from "@ag-grid-enterprise/column-tool-panel";
 import { FiltersToolPanelModule } from "@ag-grid-enterprise/filter-tool-panel";
 import { SetFilterModule } from "@ag-grid-enterprise/set-filter";
-import { TypeName } from "./types";
+import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
+import { GridChartsModule } from "@ag-grid-enterprise/charts";
+import { MenuModule } from "@ag-grid-enterprise/menu";
 
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
   ColumnsToolPanelModule,
   FiltersToolPanelModule,
   SetFilterModule,
+  RangeSelectionModule,
+  GridChartsModule,
+  MenuModule,
 ]);
 
 export default function PlayerSeasonFull(): JSX.Element {
@@ -234,40 +236,48 @@ export default function PlayerSeasonFull(): JSX.Element {
       {
         field: "pts",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "ast",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "reb",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "dreb",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "oreb",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "stl",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "blk",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: FGTYPE.fieldGoal,
+        filter: "agNumberColumnFilter",
         aggFunc: percentageAggFactory(
           FGATYPE.fieldGoal,
           FGMTYPE.fieldGoal,
@@ -278,15 +288,18 @@ export default function PlayerSeasonFull(): JSX.Element {
       {
         field: "fga",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "fgm",
         aggFunc: "avg",
+        filter: "agNumberColumnFilter",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: FGTYPE.threePt,
+        filter: "agNumberColumnFilter",
         aggFunc: percentageAggFactory(
           FGATYPE.threePt,
           FGMTYPE.threePt,
@@ -296,16 +309,19 @@ export default function PlayerSeasonFull(): JSX.Element {
       },
       {
         field: "fg3a",
+        filter: "agNumberColumnFilter",
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "fg3m",
+        filter: "agNumberColumnFilter",
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: FGTYPE.freeThrow,
+        filter: "agNumberColumnFilter",
         aggFunc: percentageAggFactory(
           FGATYPE.freeThrow,
           FGMTYPE.freeThrow,
@@ -315,11 +331,13 @@ export default function PlayerSeasonFull(): JSX.Element {
       },
       {
         field: "fta",
+        filter: "agNumberColumnFilter",
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "ftm",
+        filter: "agNumberColumnFilter",
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
@@ -330,11 +348,13 @@ export default function PlayerSeasonFull(): JSX.Element {
       },
       {
         field: "pf",
+        filter: "agNumberColumnFilter",
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "turnover",
+        filter: "agNumberColumnFilter",
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
@@ -345,15 +365,10 @@ export default function PlayerSeasonFull(): JSX.Element {
 
   const defaultColDef = useMemo(() => {
     return {
-      // flex: 1,
-      // allow every column to be aggregated
       enableValue: true,
-      // allow every column to be grouped
       enableRowGroup: true,
-      // allow every column to be pivoted
       enablePivot: true,
       sortable: true,
-      filter: true,
     };
   }, []);
 
@@ -444,12 +459,14 @@ export default function PlayerSeasonFull(): JSX.Element {
               rowData={(!!stats && Object.values(stats).flat()) || []}
               columnDefs={playerPageColDef}
               defaultColDef={defaultColDef}
-              animateRows={true}
+              animateRows
               rowSelection="multiple"
               rowGroupPanelShow="always"
               overlayNoRowsTemplate="Please wait while data loads..."
-              suppressAggFuncInHeader={true}
-              sideBar={true}
+              suppressAggFuncInHeader
+              sideBar
+              enableRangeSelection
+              enableCharts
             />
           </div>
         </div>
