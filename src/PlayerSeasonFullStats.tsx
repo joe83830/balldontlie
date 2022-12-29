@@ -1,12 +1,38 @@
 import { Chip, CircularProgress, TextField } from "@mui/material";
-import { IAggFuncParams, ValueFormatterParams } from "@ag-grid-community/core";
-import React, { useEffect, useMemo, useState } from "react";
+import {
+  IAggFuncParams,
+  ValueFormatterParams,
+  ModuleRegistry,
+} from "@ag-grid-community/core";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { IPlayerSource, IStatRow, IStatSource } from "./types";
+import {
+  FGTYPE,
+  IPlayerSource,
+  IStatRow,
+  IStatSource,
+  FGATYPE,
+  FGMTYPE,
+  FGPFG,
+  FGPCollection,
+  ObjectType,
+} from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
 import { AgGridReact } from "@ag-grid-community/react";
 import "@ag-grid-community/styles/ag-grid.css";
 import "@ag-grid-community/styles/ag-theme-alpine.css";
+import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
+import { ColumnsToolPanelModule } from "@ag-grid-enterprise/column-tool-panel";
+import { FiltersToolPanelModule } from "@ag-grid-enterprise/filter-tool-panel";
+import { SetFilterModule } from "@ag-grid-enterprise/set-filter";
+import { TypeName } from "./types";
+
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ColumnsToolPanelModule,
+  FiltersToolPanelModule,
+  SetFilterModule,
+]);
 
 export default function PlayerSeasonFull(): JSX.Element {
   const [playerState, setPlayerState] = useState<IPlayerSource>();
@@ -84,23 +110,30 @@ export default function PlayerSeasonFull(): JSX.Element {
 
       const massagedStats = [] as IStatRow[];
       statResponseJson.data.forEach((stat: IStatSource) => {
-        if (stat.min !== "00") {
+        if (!!stat.min && stat.min !== "00" && stat.min !== "0") {
           massagedStats.push({
             ...stat,
             date: stat.game.date.split("T")[0],
             season: stat.game.season,
             team: stat.team?.full_name,
-            min: parseInt(stat.min),
-            fg_pct: { fg_pct: stat.fg_pct, fga: stat.fga, fgm: stat.fgm },
-            fg3_pct: {
-              fg3_pct: stat.fg3_pct,
-              fg3a: stat.fg3a,
-              fg3m: stat.fg3m,
+            min: stat.min,
+            [FGTYPE.fieldGoal]: {
+              type: "fg",
+              [FGTYPE.fieldGoal]: stat.fg_pct,
+              [FGATYPE.fieldGoal]: stat.fga,
+              [FGMTYPE.fieldGoal]: stat.fgm,
             },
-            ft_pct: {
-              ft_pct: stat.ft_pct,
-              fta: stat.fta,
-              ftm: stat.ftm,
+            [FGTYPE.threePt]: {
+              type: "3p",
+              [FGTYPE.threePt]: stat.fg3_pct,
+              [FGATYPE.threePt]: stat.fg3a,
+              [FGMTYPE.threePt]: stat.fg3m,
+            },
+            [FGTYPE.freeThrow]: {
+              type: "ft",
+              [FGTYPE.freeThrow]: stat.ft_pct,
+              [FGATYPE.freeThrow]: stat.fta,
+              [FGMTYPE.freeThrow]: stat.ftm,
             },
           });
         }
@@ -121,21 +154,27 @@ export default function PlayerSeasonFull(): JSX.Element {
     []
   );
 
+  // Return type of the returned function has to be the same as what's defined in IStatRow
   const percentageAggFactory = useMemo(
-    () => (attemptField: string, madeField: string, percentField: string) => {
+    () => (attemptField: FGATYPE, madeField: FGMTYPE, percentField: FGTYPE) => {
       return (params: IAggFuncParams<IStatRow>) => {
-        if (!!params.values && params.values.length > 1) {
+        if (!!params.values && !!params.rowNode.key) {
           const { totalA, totalM } = params.values.reduce(
             (acc, cur) => ({
-              totalA: acc.totalA + cur[attemptField],
-              totalM: acc.totalM + cur[madeField],
+              totalA: acc.totalA + (!!cur && cur[attemptField]),
+              totalM: acc.totalM + (!!cur && cur[madeField]),
             }),
             {
               totalA: 0,
               totalM: 0,
             }
           );
-          return { [percentField]: totalM / totalA };
+
+          return {
+            [percentField]: totalA === 0 ? 0 : totalM / totalA,
+            [attemptField]: totalA,
+            [madeField]: totalM,
+          };
         }
       };
     },
@@ -143,13 +182,47 @@ export default function PlayerSeasonFull(): JSX.Element {
   );
 
   const percentageFormatterFactory = useMemo(
-    () => (field: string) => {
+    () => (field: FGTYPE) => {
       return (params: ValueFormatterParams<IStatRow>) => {
-        if (!!params.value) {
-          return `${params.value[field].toFixed(2).split(".")[1]}%`;
+        if (params.value[field] === 0) {
+          return "0%";
         }
-        return "";
+        return `${params.value[field].toFixed(2).split(".")[1]}%`;
       };
+    },
+    []
+  );
+
+  const minAvgFunc = useCallback((params: IAggFuncParams<IStatRow, string>) => {
+    if (!!params.values && !!params.rowNode.key) {
+      let totalMins = 0;
+      let totalSecs = 0;
+      params.values.forEach((minString) => {
+        const [min, sec] = minString.split(":");
+        if (!!sec) {
+          totalSecs += parseInt(sec);
+        }
+        totalMins += parseInt(min);
+      });
+      totalSecs += totalMins * 60;
+      const avgSecs = Math.round(totalSecs / params.values.length);
+      const avgMins = Math.floor(avgSecs / 60);
+      let secsRemainder =
+        avgSecs - avgMins * 60 === 0 ? "00" : `${avgSecs - avgMins * 60}`;
+
+      return `${avgMins}:${secsRemainder}`;
+    }
+  }, []);
+
+  const minFormatterFunc = useCallback(
+    (params: ValueFormatterParams<IStatRow>) => {
+      if (!!params.value) {
+        if (!params.value.split(":")[1]) {
+          return `${params.value}:00`;
+        } else {
+          return params.value;
+        }
+      }
     },
     []
   );
@@ -157,132 +230,132 @@ export default function PlayerSeasonFull(): JSX.Element {
   const playerPageColDef = useMemo(
     () => [
       { field: "date" },
-      { field: "season", filter: true, enableRowGroup: true, rowGroup: true },
+      { field: "season", enableRowGroup: true, rowGroup: true },
       {
         field: "pts",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "ast",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "reb",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "dreb",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "oreb",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "stl",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "blk",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
-        field: "fg_pct",
-        filter: true,
-        aggFunc: percentageAggFactory("fga", "fgm", "fg_pct"),
-        valueFormatter: percentageFormatterFactory("fg_pct"),
+        field: FGTYPE.fieldGoal,
+        aggFunc: percentageAggFactory(
+          FGATYPE.fieldGoal,
+          FGMTYPE.fieldGoal,
+          FGTYPE.fieldGoal
+        ),
+        valueFormatter: percentageFormatterFactory(FGTYPE.fieldGoal),
       },
       {
         field: "fga",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "fgm",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
-        field: "fg3_pct",
-        filter: true,
-        aggFunc: percentageAggFactory("fg3a", "fg3m", "fg3_pct"),
-        valueFormatter: percentageFormatterFactory("fg3_pct"),
+        field: FGTYPE.threePt,
+        aggFunc: percentageAggFactory(
+          FGATYPE.threePt,
+          FGMTYPE.threePt,
+          FGTYPE.threePt
+        ),
+        valueFormatter: percentageFormatterFactory(FGTYPE.threePt),
       },
       {
         field: "fg3a",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "fg3m",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
-        field: "ft_pct",
-        filter: true,
-        aggFunc: percentageAggFactory("fta", "ftm", "ft_pct"),
-        valueFormatter: percentageFormatterFactory("ft_pct"),
+        field: FGTYPE.freeThrow,
+        aggFunc: percentageAggFactory(
+          FGATYPE.freeThrow,
+          FGMTYPE.freeThrow,
+          FGTYPE.freeThrow
+        ),
+        valueFormatter: percentageFormatterFactory(FGTYPE.freeThrow),
       },
       {
         field: "fta",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "ftm",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "min",
-        filter: true,
-        aggFunc: "avg",
-        valueFormatter: toFixedFormatterFunc,
+        aggFunc: minAvgFunc,
+        valueFormatter: minFormatterFunc,
       },
       {
         field: "pf",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
       {
         field: "turnover",
-        filter: true,
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
-      { field: "team", filter: true },
+      { field: "team" },
     ],
     []
   );
 
-  const defaultColDef = useMemo(
-    () => ({
+  const defaultColDef = useMemo(() => {
+    return {
+      // flex: 1,
+      // allow every column to be aggregated
+      enableValue: true,
+      // allow every column to be grouped
+      enableRowGroup: true,
+      // allow every column to be pivoted
+      enablePivot: true,
       sortable: true,
-    }),
-    []
-  );
+      filter: true,
+    };
+  }, []);
 
   function handleAddSeason(e: React.KeyboardEvent<HTMLDivElement>) {
     const season = (e.target as HTMLInputElement).value;

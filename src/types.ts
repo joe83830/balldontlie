@@ -61,23 +61,76 @@ export interface IStatSource {
   turnover: number;
 }
 
+export enum FGTYPE {
+  fieldGoal = "fg_pct",
+  threePt = "fg3_pct",
+  freeThrow = "ft_pct",
+}
+
+export enum FGATYPE {
+  fieldGoal = "fga",
+  threePt = "fg3a",
+  freeThrow = "fta",
+}
+
+export enum FGMTYPE {
+  fieldGoal = "fgm",
+  threePt = "fg3m",
+  freeThrow = "ftm",
+}
+
+export interface FGPFG {
+  type: "fg";
+  [FGTYPE.fieldGoal]: number;
+  [FGATYPE.fieldGoal]: number;
+  [FGMTYPE.fieldGoal]: number;
+}
+
+export interface FGPFT {
+  type: "ft";
+  [FGTYPE.freeThrow]: number;
+  [FGATYPE.freeThrow]: number;
+  [FGMTYPE.freeThrow]: number;
+}
+
+export interface FGP3P {
+  type: "3p";
+  [FGTYPE.threePt]: number;
+  [FGATYPE.threePt]: number;
+  [FGMTYPE.threePt]: number;
+}
+
+export type TypeName = "fg" | "ft" | "3p";
+
+export type ObjectType<T> = T extends "fg"
+  ? FGPFG
+  : T extends "ft"
+  ? FGPFT
+  : T extends "3p"
+  ? FGP3P
+  : never;
+export interface FGPCollection {
+  [FGTYPE.fieldGoal]: FGPFG;
+  [FGTYPE.freeThrow]: FGPFT;
+  [FGTYPE.threePt]: FGP3P;
+}
 export interface IStatRow {
   id: number;
   ast: number;
   blk: number;
   dreb: number;
-  fg3_pct: { fg3_pct: number; fg3a: number; fg3m: number };
+  [FGTYPE.threePt]: FGP3P;
   fg3a: number;
   fg3m: number;
-  fg_pct: { fg_pct: number; fga: number; fgm: number };
+  [FGTYPE.fieldGoal]: FGPFG;
   fga: number;
   fgm: number;
-  ft_pct: { ft_pct: number; fta: number; ftm: number };
+  [FGTYPE.freeThrow]: FGPFT;
   fta: number;
   ftm: number;
   date: string;
   season: number;
-  min: number;
+  min: string;
   oreb: number;
   pf: number;
   player: IPlayerSource;
