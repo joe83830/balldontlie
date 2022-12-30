@@ -1,4 +1,11 @@
-import { Chip, CircularProgress, TextField } from "@mui/material";
+import {
+  Chip,
+  CircularProgress,
+  FormControlLabel,
+  FormGroup,
+  Switch,
+  TextField,
+} from "@mui/material";
 import {
   IAggFuncParams,
   ValueFormatterParams,
@@ -38,23 +45,27 @@ ModuleRegistry.registerModules([
 
 export default function PlayerSeasonFull(): JSX.Element {
   const [playerState, setPlayerState] = useState<IPlayerSource>();
-  const { state, search } = useLocation();
-  const query = new URLSearchParams(search);
-  const page = parseInt(query.get("page") || "1", 10);
+  const { state } = useLocation();
   const [seasons, setSeasons] = useState<Array<string>>(["2022"]);
   const [stats, setStats] = useState<Record<string, IStatRow[]>>();
+  const [playoffStats, setPlayoffStats] = useState<
+    Record<string, IStatRow[]>
+  >();
   const [noDataError, setNoDataError] = useState<string>("");
   const [availableSeason, setAvailableSeason] = useState<string>();
+  const [playoffToggleChecked, setPlayoffToggleChecked] = useState<boolean>(
+    false
+  );
 
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-    fetchStats([state?.playerId], signal);
+    fetchStats([state?.playerId], signal, seasons);
 
     return () => {
       controller.abort();
     };
-  }, [seasons, page]);
+  }, [seasons]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,87 +78,120 @@ export default function PlayerSeasonFull(): JSX.Element {
     };
   }, []);
 
-  async function fetchPlayer(playerId: number[], signal: AbortSignal) {
-    try {
-      const playerResponse = await fetch(
-        formatFetchSinglePlayerUrl(playerId[0]),
-        {
-          signal,
-        }
-      );
-      const playerResponseJson = await playerResponse.json();
-      setPlayerState(playerResponseJson);
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-  async function fetchInitialStat(playerId: number[], signal: AbortSignal) {
-    try {
-      const statResponse = await fetch(formatFetchStats(playerId, [], page), {
-        signal,
-      });
-      const statResponseJson = await statResponse.json();
-      setAvailableSeason(statResponseJson.data[0].game.season);
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-  async function fetchStats(playerId: number[], signal: AbortSignal) {
-    if (seasons.length === 0) {
-      return;
-    }
-    try {
-      const statResponse = await fetch(
-        formatFetchStats(playerId, [seasons[seasons.length - 1]], page),
-        {
-          signal,
-        }
-      );
-
-      const statResponseJson = await statResponse.json();
-
-      if (statResponseJson.data.length === 0) {
-        setNoDataError(seasons[seasons.length - 1]);
+  const fetchPlayer = useCallback(
+    async (playerId: number[], signal: AbortSignal) => {
+      try {
+        const playerResponse = await fetch(
+          formatFetchSinglePlayerUrl(playerId[0]),
+          {
+            signal,
+          }
+        );
+        const playerResponseJson = await playerResponse.json();
+        setPlayerState(playerResponseJson);
+      } catch (e) {
+        console.warn(e);
       }
+    },
+    []
+  );
 
-      const massagedStats = [] as IStatRow[];
-      statResponseJson.data.forEach((stat: IStatSource) => {
-        if (!!stat.min && stat.min !== "00" && stat.min !== "0") {
-          massagedStats.push({
-            ...stat,
-            date: stat.game.date.split("T")[0],
-            season: stat.game.season,
-            team: stat.team?.full_name,
-            min: stat.min,
-            [FGTYPE.fieldGoal]: {
-              type: "fg",
-              [FGTYPE.fieldGoal]: stat.fg_pct,
-              [FGATYPE.fieldGoal]: stat.fga,
-              [FGMTYPE.fieldGoal]: stat.fgm,
-            },
-            [FGTYPE.threePt]: {
-              type: "3p",
-              [FGTYPE.threePt]: stat.fg3_pct,
-              [FGATYPE.threePt]: stat.fg3a,
-              [FGMTYPE.threePt]: stat.fg3m,
-            },
-            [FGTYPE.freeThrow]: {
-              type: "ft",
-              [FGTYPE.freeThrow]: stat.ft_pct,
-              [FGATYPE.freeThrow]: stat.fta,
-              [FGMTYPE.freeThrow]: stat.ftm,
-            },
-          });
-        }
+  const fetchInitialStat = useCallback(
+    async (playerId: number[], signal: AbortSignal) => {
+      try {
+        const statResponse = await fetch(formatFetchStats(playerId, []), {
+          signal,
+        });
+        const statResponseJson = await statResponse.json();
+        setAvailableSeason(statResponseJson.data[0].game.season);
+      } catch (e) {
+        console.warn(e);
+      }
+    },
+    []
+  );
+
+  const massageStat = (
+    stat: IStatSource,
+    playoffs: boolean,
+    statArr: IStatRow[]
+  ) => {
+    if (
+      !!stat.min &&
+      stat.min !== "00" &&
+      stat.min !== "0" &&
+      stat.game.postseason === playoffs
+    ) {
+      statArr.push({
+        ...stat,
+        date: stat.game.date.split("T")[0],
+        season: stat.game.season,
+        team: stat.team?.full_name,
+        min: stat.min,
+        [FGTYPE.fieldGoal]: {
+          type: "fg",
+          [FGTYPE.fieldGoal]: stat.fg_pct,
+          [FGATYPE.fieldGoal]: stat.fga,
+          [FGMTYPE.fieldGoal]: stat.fgm,
+        },
+        [FGTYPE.threePt]: {
+          type: "3p",
+          [FGTYPE.threePt]: stat.fg3_pct,
+          [FGATYPE.threePt]: stat.fg3a,
+          [FGMTYPE.threePt]: stat.fg3m,
+        },
+        [FGTYPE.freeThrow]: {
+          type: "ft",
+          [FGTYPE.freeThrow]: stat.ft_pct,
+          [FGATYPE.freeThrow]: stat.fta,
+          [FGMTYPE.freeThrow]: stat.ftm,
+        },
       });
-      setStats((prevStats) => ({
-        ...prevStats,
-        ...{ [seasons[seasons.length - 1]]: massagedStats },
-      }));
-    } catch (e) {
-      console.warn(e);
     }
-  }
+  };
+
+  const fetchStats = useCallback(
+    async (playerId: number[], signal: AbortSignal, seasons: string[]) => {
+      if (seasons.length === 0) {
+        return;
+      }
+      try {
+        const statResponse = await fetch(
+          formatFetchStats(playerId, [seasons[seasons.length - 1]]),
+          {
+            signal,
+          }
+        );
+
+        const statResponseJson = await statResponse.json();
+
+        if (statResponseJson.data.length === 0) {
+          setNoDataError(seasons[seasons.length - 1]);
+        }
+
+        const massagedStats = [] as IStatRow[];
+        const massagedPlayoffStats = [] as IStatRow[];
+
+        statResponseJson.data.forEach((stat: IStatSource) => {
+          massageStat(stat, false, massagedStats);
+          massageStat(stat, true, massagedPlayoffStats);
+        });
+
+        setStats((prevStats) => ({
+          ...prevStats,
+          ...{ [seasons[seasons.length - 1]]: massagedStats },
+        }));
+
+        setPlayoffStats((prevStats) => ({
+          ...prevStats,
+          ...{ [seasons[seasons.length - 1]]: massagedPlayoffStats },
+        }));
+      } catch (e) {
+        console.warn(e);
+      }
+    },
+    []
+  );
 
   const toFixedFormatterFunc = useMemo(
     () => (params: ValueFormatterParams<IStatRow>) => {
@@ -378,6 +422,7 @@ export default function PlayerSeasonFull(): JSX.Element {
     setSeasons((curSeasons) => {
       if (curSeasons.length === 0) {
         setStats({});
+        setPlayoffStats({});
       }
       if (!curSeasons.includes(season)) {
         return [...curSeasons, season];
@@ -397,6 +442,10 @@ export default function PlayerSeasonFull(): JSX.Element {
         if (!!curStats) delete curStats[season];
         return curStats;
       });
+      setPlayoffStats((curStats) => {
+        if (!!curStats) delete curStats[season];
+        return curStats;
+      });
       setSeasons((curSeasons) => curSeasons.filter((s) => s !== season));
     };
   };
@@ -408,6 +457,11 @@ export default function PlayerSeasonFull(): JSX.Element {
       return `Height: ${formattedHeight}`;
     }
   }
+
+  const handleTogglePlayoff = () => {
+    setPlayoffToggleChecked((curPlayoffChecked) => !curPlayoffChecked);
+  };
+  console.log(playoffStats);
   return (
     <>
       {
@@ -431,23 +485,38 @@ export default function PlayerSeasonFull(): JSX.Element {
             )}
 
             <div className="hamburger-margin u-flex-row">
-              <div className="right-margin">
-                <TextField
-                  id="outlined-basic"
-                  label="Add season"
-                  variant="outlined"
-                  onKeyPress={(event) => {
-                    if (event.key === "Enter") {
-                      handleAddSeason(event);
-                    }
-                  }}
-                />
-              </div>
-              {Array.from(seasons).map((season) => (
+              <div className="u-flex-row">
                 <div className="right-margin">
-                  <Chip label={season} onDelete={deleteSeason(season)} />
+                  <TextField
+                    id="outlined-basic"
+                    label="Add season"
+                    variant="outlined"
+                    onKeyPress={(event) => {
+                      if (event.key === "Enter") {
+                        handleAddSeason(event);
+                      }
+                    }}
+                  />
                 </div>
-              ))}
+                {Array.from(seasons).map((season) => (
+                  <div className="right-margin">
+                    <Chip label={season} onDelete={deleteSeason(season)} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <FormGroup>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={playoffToggleChecked}
+                        onChange={handleTogglePlayoff}
+                      />
+                    }
+                    label="Playoffs"
+                  />
+                </FormGroup>
+              </div>
             </div>
             {noDataError && (
               <div
@@ -456,7 +525,9 @@ export default function PlayerSeasonFull(): JSX.Element {
             )}
             <AgGridReact
               className="ag-theme-alpine"
-              rowData={(!!stats && Object.values(stats).flat()) || []}
+              rowData={Object.values(
+                (playoffToggleChecked ? playoffStats : stats) || []
+              ).flat()}
               columnDefs={playerPageColDef}
               defaultColDef={defaultColDef}
               animateRows

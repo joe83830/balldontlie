@@ -19,12 +19,8 @@ export function formatFetchSinglePlayerUrl(playerId: number) {
   return `${getSinglePlayerApi}${playerId}`;
 }
 
-export function formatFetchStats(
-  playerIds: number[],
-  seasons: string[],
-  page: number
-) {
-  let url = `${getStatsApi}?page=${page}&per_page=100`;
+export function formatFetchStats(playerIds: number[], seasons: string[]) {
+  let url = `${getStatsApi}?page=1&per_page=100`;
 
   playerIds.forEach((pid) => {
     url += `&player_ids[]=${pid}`;
