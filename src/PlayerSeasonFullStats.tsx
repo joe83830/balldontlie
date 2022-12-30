@@ -412,7 +412,7 @@ export default function PlayerSeasonFull(): JSX.Element {
     <>
       {
         <div className="u-flex-col">
-          <div className="u-flex-inner">
+          <div className="u-flex-inner" id="innerContainer">
             {!playerState && <CircularProgress />}
             {!!playerState && (
               <>
@@ -467,6 +467,7 @@ export default function PlayerSeasonFull(): JSX.Element {
               sideBar
               enableRangeSelection
               enableCharts
+              popupParent={document.getElementById("innerContainer")}
             />
           </div>
         </div>
