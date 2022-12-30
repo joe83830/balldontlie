@@ -1,6 +1,3 @@
-import { Link } from "@mui/material";
-import { ICellRendererParams } from "ag-grid-community";
-
 export const getAllPlayersApi: string =
   "https://www.balldontlie.io/api/v1/players";
 

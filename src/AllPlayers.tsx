@@ -92,65 +92,61 @@ export default function AllPlayers() {
     };
   }, [page]);
 
-  async function fetchAllPlayers(
-    targetPage: number,
-    search: string,
-    signal: AbortSignal
-  ) {
-    try {
-      const response = await fetch(
-        formatFetchAllPlayersUrl(targetPage, search),
-        {
-          signal,
-        }
-      );
-      const jsonRes = await response.json();
-      const playersData: IPlayerRow[] = jsonRes.data.map(
-        (player: IPlayerSource) => ({
-          ...player,
-          ...{ Name: `${player.first_name} ${player.last_name}` },
-          ...{ team: player.team?.full_name },
-        })
-      );
-      navigate({
-        pathname: "/",
-        search: createSearchParams({
-          page: page.toString(),
-          searchTerm: search,
-        }).toString(),
-      });
-      setAllPlayersData(playersData);
-      setMeta(jsonRes.meta);
-    } catch (e) {
-      console.warn(e);
-    }
-  }
+  const fetchAllPlayers = useCallback(
+    async (targetPage: number, search: string, signal: AbortSignal) => {
+      try {
+        const response = await fetch(
+          formatFetchAllPlayersUrl(targetPage, search),
+          {
+            signal,
+          }
+        );
+        const jsonRes = await response.json();
+        const playersData: IPlayerRow[] = jsonRes.data.map(
+          (player: IPlayerSource) => ({
+            ...player,
+            ...{ Name: `${player.first_name} ${player.last_name}` },
+            ...{ team: player.team?.full_name },
+          })
+        );
+        navigate({
+          pathname: "/",
+          search: createSearchParams({
+            page: page.toString(),
+            searchTerm: search,
+          }).toString(),
+        });
+        setAllPlayersData(playersData);
+        setMeta(jsonRes.meta);
+      } catch (e) {
+        console.warn(e);
+      }
+    },
+    []
+  );
 
   const debouncedFetch = useCallback(debounce(fetchAllPlayers, 1000), []);
 
-  function handlePageChange(_: React.ChangeEvent<unknown>, value: number) {
-    navigate({
-      pathname: "/",
-      search: createSearchParams({
-        page: value.toString(),
-        searchTerm: searchTerm,
-      }).toString(),
-    });
-  }
+  const handlePageChange = useCallback(
+    (_: React.ChangeEvent<unknown>, value: number) => {
+      navigate({
+        pathname: "/",
+        search: createSearchParams({
+          page: value.toString(),
+          searchTerm: searchTerm,
+        }).toString(),
+      });
+    },
+    []
+  );
 
-  function handleSearch(term: string) {
+  const handleSearch = useCallback((term: string) => {
     const controller = new AbortController();
     const signal = controller.signal;
     setSearchTerm(term);
     debouncedFetch(page, term, signal);
-  }
+  }, []);
 
-  const defaultColDef = useMemo(
-    () => ({
-      sortable: true,
-    }),
-    []
-  );
   return (
     <>
       {
@@ -163,13 +159,10 @@ export default function AllPlayers() {
               onChange={(e) => handleSearch(e.target.value)}
               value={searchTerm}
             />
-            {/* </div> */}
-
             <AgGridReact
               className="ag-theme-alpine grid-container"
               rowData={allPlayerData}
               columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="multiple"
               rowGroupPanelShow="always"
