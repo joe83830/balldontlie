@@ -111,44 +111,43 @@ export default function PlayerSeasonFull(): JSX.Element {
     []
   );
 
-  const massageStat = (
-    stat: IStatSource,
-    playoffs: boolean,
-    statArr: IStatRow[]
-  ) => {
-    if (
-      !!stat.min &&
-      stat.min !== "00" &&
-      stat.min !== "0" &&
-      stat.game.postseason === playoffs
-    ) {
-      statArr.push({
-        ...stat,
-        date: stat.game.date.split("T")[0],
-        season: stat.game.season,
-        team: stat.team?.full_name,
-        min: stat.min,
-        [FGTYPE.fieldGoal]: {
-          type: "fg",
-          [FGTYPE.fieldGoal]: stat.fg_pct,
-          [FGATYPE.fieldGoal]: stat.fga,
-          [FGMTYPE.fieldGoal]: stat.fgm,
-        },
-        [FGTYPE.threePt]: {
-          type: "3p",
-          [FGTYPE.threePt]: stat.fg3_pct,
-          [FGATYPE.threePt]: stat.fg3a,
-          [FGMTYPE.threePt]: stat.fg3m,
-        },
-        [FGTYPE.freeThrow]: {
-          type: "ft",
-          [FGTYPE.freeThrow]: stat.ft_pct,
-          [FGATYPE.freeThrow]: stat.fta,
-          [FGMTYPE.freeThrow]: stat.ftm,
-        },
-      });
-    }
-  };
+  const massageStat = useCallback(
+    (stat: IStatSource, playoffs: boolean, statArr: IStatRow[]) => {
+      if (
+        !!stat.min &&
+        stat.min !== "00" &&
+        stat.min !== "0" &&
+        stat.game.postseason === playoffs
+      ) {
+        statArr.push({
+          ...stat,
+          date: stat.game.date.split("T")[0],
+          season: stat.game.season,
+          team: stat.team?.full_name,
+          min: stat.min,
+          [FGTYPE.fieldGoal]: {
+            type: "fg",
+            [FGTYPE.fieldGoal]: stat.fg_pct,
+            [FGATYPE.fieldGoal]: stat.fga,
+            [FGMTYPE.fieldGoal]: stat.fgm,
+          },
+          [FGTYPE.threePt]: {
+            type: "3p",
+            [FGTYPE.threePt]: stat.fg3_pct,
+            [FGATYPE.threePt]: stat.fg3a,
+            [FGMTYPE.threePt]: stat.fg3m,
+          },
+          [FGTYPE.freeThrow]: {
+            type: "ft",
+            [FGTYPE.freeThrow]: stat.ft_pct,
+            [FGATYPE.freeThrow]: stat.fta,
+            [FGMTYPE.freeThrow]: stat.ftm,
+          },
+        });
+      }
+    },
+    []
+  );
 
   const fetchStats = useCallback(
     async (playerId: number[], signal: AbortSignal, seasons: string[]) => {
@@ -416,24 +415,27 @@ export default function PlayerSeasonFull(): JSX.Element {
     };
   }, []);
 
-  function handleAddSeason(e: React.KeyboardEvent<HTMLDivElement>) {
-    const season = (e.target as HTMLInputElement).value;
-    (e.target as HTMLInputElement).value = "";
-    setSeasons((curSeasons) => {
-      if (curSeasons.length === 0) {
-        setStats({});
-        setPlayoffStats({});
-      }
-      if (!curSeasons.includes(season)) {
-        return [...curSeasons, season];
-      } else {
-        return curSeasons;
-      }
-    });
-    e.preventDefault();
-  }
+  const handleAddSeason = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const season = (e.target as HTMLInputElement).value;
+      (e.target as HTMLInputElement).value = "";
+      setSeasons((curSeasons) => {
+        if (curSeasons.length === 0) {
+          setStats({});
+          setPlayoffStats({});
+        }
+        if (!curSeasons.includes(season)) {
+          return [...curSeasons, season];
+        } else {
+          return curSeasons;
+        }
+      });
+      e.preventDefault();
+    },
+    []
+  );
 
-  const deleteSeason = (season: string) => {
+  const deleteSeason = useCallback((season: string) => {
     return () => {
       if (season === noDataError) {
         setNoDataError("");
@@ -448,20 +450,21 @@ export default function PlayerSeasonFull(): JSX.Element {
       });
       setSeasons((curSeasons) => curSeasons.filter((s) => s !== season));
     };
-  };
-  function getHeight() {
+  }, []);
+
+  const handleTogglePlayoff = useCallback(() => {
+    setPlayoffToggleChecked((curPlayoffChecked) => !curPlayoffChecked);
+  }, []);
+
+  const getHeight = useCallback((playerState: IPlayerSource) => {
     if (!!playerState) {
       const formattedHeight = !!playerState.height_feet
         ? `${playerState.height_feet} ' ${playerState.height_inches} "`
         : "N/A";
       return `Height: ${formattedHeight}`;
     }
-  }
+  }, []);
 
-  const handleTogglePlayoff = () => {
-    setPlayoffToggleChecked((curPlayoffChecked) => !curPlayoffChecked);
-  };
-  console.log(playoffStats);
   return (
     <>
       {
@@ -474,7 +477,9 @@ export default function PlayerSeasonFull(): JSX.Element {
                 <div className="u-flex-row">
                   <div className="stack-x">
                     <div className="hamburger-margin">{`Position: ${playerState.position}`}</div>
-                    <div className="hamburger-margin">{getHeight()}</div>
+                    <div className="hamburger-margin">
+                      {getHeight(playerState)}
+                    </div>
                   </div>
                   <div>
                     <div className="hamburger-margin">{`Latest Team: ${playerState.team.city} ${playerState.team.name}`}</div>
