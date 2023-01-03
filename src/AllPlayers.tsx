@@ -1,12 +1,6 @@
 import Pagination from "@mui/material/Pagination/Pagination";
 import { AgGridReact } from "ag-grid-react";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IAllPlayersMeta, IPlayerRow, IPlayerSource } from "./types";
 import { formatFetchAllPlayersUrl } from "./utils";
 import "ag-grid-community/styles/ag-grid.css";
@@ -81,16 +75,6 @@ export default function AllPlayers() {
     ],
     []
   );
-  useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    fetchAllPlayers(page, searchTerm, signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [page]);
 
   const fetchAllPlayers = useCallback(
     async (targetPage: number, search: string, signal: AbortSignal) => {
@@ -112,7 +96,7 @@ export default function AllPlayers() {
         navigate({
           pathname: "/",
           search: createSearchParams({
-            page: page.toString(),
+            page: targetPage.toString(),
             searchTerm: search,
           }).toString(),
         });
@@ -122,13 +106,26 @@ export default function AllPlayers() {
         console.warn(e);
       }
     },
-    []
+    [navigate]
   );
 
-  const debouncedFetch = useCallback(debounce(fetchAllPlayers, 1000), []);
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    fetchAllPlayers(page, "", signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [page, fetchAllPlayers]);
+
+  const debouncedFetch = useMemo(() => debounce(fetchAllPlayers, 1000), [
+    fetchAllPlayers,
+  ]);
 
   const handlePageChange = useCallback(
-    (_: React.ChangeEvent<unknown>, value: number) => {
+    (_: React.ChangeEvent<unknown>, value: number, searchTerm: string) => {
       navigate({
         pathname: "/",
         search: createSearchParams({
@@ -137,15 +134,18 @@ export default function AllPlayers() {
         }).toString(),
       });
     },
-    []
+    [navigate]
   );
 
-  const handleSearch = useCallback((term: string) => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    setSearchTerm(term);
-    debouncedFetch(page, term, signal);
-  }, []);
+  const handleSearch = useCallback(
+    (term: string, page: number) => {
+      const controller = new AbortController();
+      const signal = controller.signal;
+      setSearchTerm(term);
+      debouncedFetch(page, term, signal);
+    },
+    [debouncedFetch]
+  );
 
   return (
     <>
@@ -156,7 +156,7 @@ export default function AllPlayers() {
               id="outlined-basic"
               label="Search Player"
               variant="outlined"
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value, page)}
               value={searchTerm}
             />
             <AgGridReact
@@ -172,7 +172,7 @@ export default function AllPlayers() {
               <Pagination
                 count={meta?.total_pages || 1}
                 page={page}
-                onChange={handlePageChange}
+                onChange={(e, value) => handlePageChange(e, value, searchTerm)}
               />
             </div>
           </div>
