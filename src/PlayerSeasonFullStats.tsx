@@ -57,27 +57,6 @@ export default function PlayerSeasonFull(): JSX.Element {
     false
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    fetchStats([state?.playerId], signal, seasons);
-
-    return () => {
-      controller.abort();
-    };
-  }, [seasons]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    fetchPlayer([state?.playerId], signal);
-    fetchInitialStat([state?.playerId], signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
-
   const fetchPlayer = useCallback(
     async (playerId: number[], signal: AbortSignal) => {
       try {
@@ -189,8 +168,28 @@ export default function PlayerSeasonFull(): JSX.Element {
         console.warn(e);
       }
     },
-    []
+    [massageStat]
   );
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    fetchStats([state?.playerId], signal, seasons);
+
+    return () => {
+      controller.abort();
+    };
+  }, [seasons, fetchStats, state?.playerId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    fetchPlayer([state?.playerId], signal);
+    fetchInitialStat([state?.playerId], signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [fetchInitialStat, fetchPlayer, state?.playerId]);
 
   const toFixedFormatterFunc = useMemo(
     () => (params: ValueFormatterParams<IStatRow>) => {
@@ -403,7 +402,13 @@ export default function PlayerSeasonFull(): JSX.Element {
       },
       { field: "team" },
     ],
-    []
+    [
+      minAvgFunc,
+      minFormatterFunc,
+      toFixedFormatterFunc,
+      percentageFormatterFactory,
+      percentageAggFactory,
+    ]
   );
 
   const defaultColDef = useMemo(() => {
@@ -435,7 +440,7 @@ export default function PlayerSeasonFull(): JSX.Element {
     []
   );
 
-  const deleteSeason = useCallback((season: string) => {
+  const deleteSeason = useCallback((season: string, noDataError: string) => {
     return () => {
       if (season === noDataError) {
         setNoDataError("");
@@ -505,7 +510,10 @@ export default function PlayerSeasonFull(): JSX.Element {
                 </div>
                 {Array.from(seasons).map((season) => (
                   <div className="right-margin">
-                    <Chip label={season} onDelete={deleteSeason(season)} />
+                    <Chip
+                      label={season}
+                      onDelete={deleteSeason(season, noDataError)}
+                    />
                   </div>
                 ))}
               </div>
