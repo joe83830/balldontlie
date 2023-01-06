@@ -18,6 +18,7 @@ import "./App.css";
 import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
 import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
 import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
+import { CircularProgress } from "@mui/material";
 
 ModuleRegistry.registerModules([
   RangeSelectionModule as Module,
@@ -31,7 +32,7 @@ export default function AllPlayers() {
   const page = parseInt(query.get("page") || "1", 10);
   const existingSearchTerm = query.get("searchTerm") || "";
   const navigate = useNavigate();
-  const [allPlayerData, setAllPlayersData] = useState<Array<IPlayerRow>>([]);
+  const [allPlayerData, setAllPlayersData] = useState<Array<IPlayerRow>>();
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
   const [searchTerm, setSearchTerm] = useState<string>(existingSearchTerm);
 
@@ -166,7 +167,8 @@ export default function AllPlayers() {
               animateRows={true}
               rowSelection="multiple"
               rowGroupPanelShow="always"
-              overlayNoRowsTemplate="Please wait while data loads..."
+              overlayNoRowsTemplate="No data to be shown"
+              loadingOverlayComponent={CircularProgress}
             />
             <div className="hamburger-margin">
               <Pagination

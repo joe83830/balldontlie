@@ -170,6 +170,7 @@ export default function PlayerSeasonFull(): JSX.Element {
     },
     [massageStat]
   );
+
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
@@ -470,6 +471,11 @@ export default function PlayerSeasonFull(): JSX.Element {
     }
   }, []);
 
+  const getRowData = () => {
+    const rowData = playoffToggleChecked ? playoffStats : stats;
+    return !!rowData ? Object.values(rowData).flat() : null;
+  };
+
   return (
     <>
       {
@@ -508,8 +514,8 @@ export default function PlayerSeasonFull(): JSX.Element {
                     }}
                   />
                 </div>
-                {Array.from(seasons).map((season) => (
-                  <div className="right-margin">
+                {Array.from(seasons).map((season, i) => (
+                  <div className="right-margin" key={`${season}-${i}`}>
                     <Chip
                       label={season}
                       onDelete={deleteSeason(season, noDataError)}
@@ -538,15 +544,14 @@ export default function PlayerSeasonFull(): JSX.Element {
             )}
             <AgGridReact
               className="ag-theme-alpine"
-              rowData={Object.values(
-                (playoffToggleChecked ? playoffStats : stats) || []
-              ).flat()}
+              rowData={getRowData()}
               columnDefs={playerPageColDef}
               defaultColDef={defaultColDef}
               animateRows
               rowSelection="multiple"
               rowGroupPanelShow="always"
-              overlayNoRowsTemplate="Please wait while data loads..."
+              overlayNoRowsTemplate="No data to be shown"
+              loadingOverlayComponent={CircularProgress}
               suppressAggFuncInHeader
               sideBar
               enableRangeSelection
