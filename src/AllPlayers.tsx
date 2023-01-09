@@ -19,6 +19,7 @@ import { RowGroupingModule } from "@ag-grid-enterprise/row-grouping";
 import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
 import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
 import { CircularProgress } from "@mui/material";
+import { getAllTeamsApi, NBATeamsDataCacheKey } from "./constants";
 
 ModuleRegistry.registerModules([
   RangeSelectionModule as Module,
@@ -111,6 +112,26 @@ export default function AllPlayers() {
   );
 
   useEffect(() => {
+    const cachedTeamData = localStorage.getItem(NBATeamsDataCacheKey);
+    if (!cachedTeamData) {
+      const controller = new AbortController();
+      const signal = controller.signal;
+      fetch(getAllTeamsApi, {
+        signal,
+      })
+        .then((res) => res.json())
+        .then((res) =>
+          localStorage.setItem(NBATeamsDataCacheKey, JSON.stringify(res.data))
+        )
+        .catch((e) => console.warn(e));
+
+      return () => {
+        controller.abort();
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
 
@@ -151,8 +172,8 @@ export default function AllPlayers() {
   return (
     <>
       {
-        <div className="u-flex-col">
-          <div className="u-flex-inner" id="inner">
+        <div className="u-flex-col-allplayers">
+          <div className="u-flex-inner-allplayers" id="inner">
             <TextField
               id="outlined-basic"
               label="Search Player"

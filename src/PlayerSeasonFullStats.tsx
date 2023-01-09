@@ -11,7 +11,13 @@ import {
   ValueFormatterParams,
   ModuleRegistry,
 } from "@ag-grid-community/core";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation } from "react-router-dom";
 import {
   FGTYPE,
@@ -20,6 +26,7 @@ import {
   IStatSource,
   FGATYPE,
   FGMTYPE,
+  RESULT,
 } from "./types";
 import { formatFetchSinglePlayerUrl, formatFetchStats } from "./utils";
 import { AgGridReact } from "@ag-grid-community/react";
@@ -32,6 +39,8 @@ import { SetFilterModule } from "@ag-grid-enterprise/set-filter";
 import { RangeSelectionModule } from "@ag-grid-enterprise/range-selection";
 import { GridChartsModule } from "@ag-grid-enterprise/charts";
 import { MenuModule } from "@ag-grid-enterprise/menu";
+import { NBATeamsDataCacheKey } from "./constants";
+import { ITeam } from "./types";
 
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
@@ -46,7 +55,7 @@ ModuleRegistry.registerModules([
 export default function PlayerSeasonFull(): JSX.Element {
   const [playerState, setPlayerState] = useState<IPlayerSource>();
   const { state } = useLocation();
-  const [seasons, setSeasons] = useState<Array<string>>(["2022"]);
+  const [seasons, setSeasons] = useState<Array<string>>([]);
   const [stats, setStats] = useState<Record<string, IStatRow[]>>();
   const [playoffStats, setPlayoffStats] = useState<
     Record<string, IStatRow[]>
@@ -56,6 +65,7 @@ export default function PlayerSeasonFull(): JSX.Element {
   const [playoffToggleChecked, setPlayoffToggleChecked] = useState<boolean>(
     false
   );
+  const teamsDataRef = useRef<ITeam[]>([]);
 
   const fetchPlayer = useCallback(
     async (playerId: number[], signal: AbortSignal) => {
@@ -122,6 +132,16 @@ export default function PlayerSeasonFull(): JSX.Element {
             [FGATYPE.freeThrow]: stat.fta,
             [FGMTYPE.freeThrow]: stat.ftm,
           },
+          result:
+            stat.team.id === stat.game.home_team_id
+              ? stat.game.home_team_score > stat.game.visitor_team_score
+                ? RESULT.WIN
+                : RESULT.LOSS
+              : stat.game.home_team_score > stat.game.visitor_team_score
+              ? RESULT.LOSS
+              : RESULT.WIN,
+          opponent:
+            teamsDataRef.current[stat.game.visitor_team_id - 1].full_name,
         });
       }
     },
@@ -192,6 +212,15 @@ export default function PlayerSeasonFull(): JSX.Element {
     };
   }, [fetchInitialStat, fetchPlayer, state?.playerId]);
 
+  useEffect(() => {
+    if (!teamsDataRef.current.length) {
+      const cachedTeamsData = localStorage.getItem(NBATeamsDataCacheKey);
+      if (!!cachedTeamsData) {
+        teamsDataRef.current = JSON.parse(cachedTeamsData);
+      }
+    }
+  }, []);
+
   const toFixedFormatterFunc = useMemo(
     () => (params: ValueFormatterParams<IStatRow>) => {
       return params?.value?.value?.toFixed(2);
@@ -229,10 +258,13 @@ export default function PlayerSeasonFull(): JSX.Element {
   const percentageFormatterFactory = useMemo(
     () => (field: FGTYPE) => {
       return (params: ValueFormatterParams<IStatRow>) => {
-        if (params.value[field] === 0) {
-          return "0%";
+        if (!!params.value) {
+          if (params.value[field] === 0) {
+            return "0%";
+          }
+          return `${params.value[field].toFixed(2).split(".")[1]}%`;
         }
-        return `${params.value[field].toFixed(2).split(".")[1]}%`;
+        return "";
       };
     },
     []
@@ -252,15 +284,23 @@ export default function PlayerSeasonFull(): JSX.Element {
       totalSecs += totalMins * 60;
       const avgSecs = Math.round(totalSecs / params.values.length);
       const avgMins = Math.floor(avgSecs / 60);
-      let secsRemainder =
-        avgSecs - avgMins * 60 === 0 ? "00" : `${avgSecs - avgMins * 60}`;
 
-      return `${avgMins}:${secsRemainder}`;
+      let formattedSecs;
+      const secsRemainder = avgSecs - avgMins * 60;
+      if (secsRemainder === 0) {
+        formattedSecs = "00";
+      } else if (secsRemainder < 10) {
+        formattedSecs = `0${secsRemainder}`;
+      } else {
+        formattedSecs = `${secsRemainder}`;
+      }
+
+      return `${avgMins}:${formattedSecs}`;
     }
   }, []);
 
   const minFormatterFunc = useCallback(
-    (params: ValueFormatterParams<IStatRow>) => {
+    (params: ValueFormatterParams<IStatRow>): string => {
       if (!!params.value) {
         if (!params.value.split(":")[1]) {
           return `${params.value}:00`;
@@ -268,8 +308,31 @@ export default function PlayerSeasonFull(): JSX.Element {
           return params.value;
         }
       }
+      return "";
     },
     []
+  );
+
+  const aggFuncs = useMemo(
+    () => ({
+      minFunc: minAvgFunc,
+      fgPercentageAggFunc: percentageAggFactory(
+        FGATYPE.fieldGoal,
+        FGMTYPE.fieldGoal,
+        FGTYPE.fieldGoal
+      ),
+      threePtPercentageAggFunc: percentageAggFactory(
+        FGATYPE.threePt,
+        FGMTYPE.threePt,
+        FGTYPE.threePt
+      ),
+      ftPercentageAggFunc: percentageAggFactory(
+        FGATYPE.freeThrow,
+        FGMTYPE.freeThrow,
+        FGTYPE.freeThrow
+      ),
+    }),
+    [minAvgFunc, percentageAggFactory]
   );
 
   const playerPageColDef = useMemo(
@@ -321,11 +384,7 @@ export default function PlayerSeasonFull(): JSX.Element {
       {
         field: FGTYPE.fieldGoal,
         filter: "agNumberColumnFilter",
-        aggFunc: percentageAggFactory(
-          FGATYPE.fieldGoal,
-          FGMTYPE.fieldGoal,
-          FGTYPE.fieldGoal
-        ),
+        aggFunc: "fgPercentageAggFunc",
         valueFormatter: percentageFormatterFactory(FGTYPE.fieldGoal),
       },
       {
@@ -343,11 +402,7 @@ export default function PlayerSeasonFull(): JSX.Element {
       {
         field: FGTYPE.threePt,
         filter: "agNumberColumnFilter",
-        aggFunc: percentageAggFactory(
-          FGATYPE.threePt,
-          FGMTYPE.threePt,
-          FGTYPE.threePt
-        ),
+        aggFunc: "threePtPercentageAggFunc",
         valueFormatter: percentageFormatterFactory(FGTYPE.threePt),
       },
       {
@@ -365,11 +420,7 @@ export default function PlayerSeasonFull(): JSX.Element {
       {
         field: FGTYPE.freeThrow,
         filter: "agNumberColumnFilter",
-        aggFunc: percentageAggFactory(
-          FGATYPE.freeThrow,
-          FGMTYPE.freeThrow,
-          FGTYPE.freeThrow
-        ),
+        aggFunc: "ftPercentageAggFunc",
         valueFormatter: percentageFormatterFactory(FGTYPE.freeThrow),
       },
       {
@@ -386,7 +437,7 @@ export default function PlayerSeasonFull(): JSX.Element {
       },
       {
         field: "min",
-        aggFunc: minAvgFunc,
+        aggFunc: "minFunc",
         valueFormatter: minFormatterFunc,
       },
       {
@@ -401,15 +452,11 @@ export default function PlayerSeasonFull(): JSX.Element {
         aggFunc: "avg",
         valueFormatter: toFixedFormatterFunc,
       },
-      { field: "team" },
+      { field: "result", filter: true },
+      { field: "team", filter: true },
+      { field: "opponent", filter: true },
     ],
-    [
-      minAvgFunc,
-      minFormatterFunc,
-      toFixedFormatterFunc,
-      percentageFormatterFactory,
-      percentageAggFactory,
-    ]
+    [minFormatterFunc, toFixedFormatterFunc, percentageFormatterFactory]
   );
 
   const defaultColDef = useMemo(() => {
@@ -473,18 +520,23 @@ export default function PlayerSeasonFull(): JSX.Element {
 
   const getRowData = () => {
     const rowData = playoffToggleChecked ? playoffStats : stats;
-    return !!rowData ? Object.values(rowData).flat() : null;
+    return !!rowData
+      ? Object.values(rowData).flat()
+      : !!seasons.length
+      ? null
+      : [];
   };
 
   return (
     <>
       {
-        <div className="u-flex-col">
-          <div className="u-flex-inner" id="innerContainer">
+        <div className="u-flex-col-allplayers">
+          <div className="u-flex-inner-allplayers" id="innerContainer">
             {!playerState && <CircularProgress />}
             {!!playerState && (
               <>
                 <h3>{`${playerState.first_name} ${playerState.last_name}`}</h3>
+                <div>{`Rookie Season: ${availableSeason}`}</div>
                 <div className="u-flex-row">
                   <div className="stack-x">
                     <div className="hamburger-margin">{`Position: ${playerState.position}`}</div>
@@ -557,6 +609,7 @@ export default function PlayerSeasonFull(): JSX.Element {
               enableRangeSelection
               enableCharts
               popupParent={document.getElementById("innerContainer")}
+              aggFuncs={aggFuncs}
             />
           </div>
         </div>

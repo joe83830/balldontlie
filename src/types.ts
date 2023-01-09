@@ -79,6 +79,10 @@ export enum FGMTYPE {
   freeThrow = "ftm",
 }
 
+export enum RESULT {
+  WIN = "Win",
+  LOSS = "Loss",
+}
 export interface FGPFG {
   type: "fg";
   [FGTYPE.fieldGoal]: number;
@@ -139,6 +143,8 @@ export interface IStatRow {
   stl: number;
   team: string;
   turnover: number;
+  result: RESULT;
+  opponent: string;
 }
 
 export interface IGame {
