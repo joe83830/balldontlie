@@ -1,5 +1,6 @@
-export const getAllPlayersApi: string =
-  "https://www.balldontlie.io/api/v1/players";
+export const getAllPlayersApi: string = "https://localhost:7298/players";
+// export const getAllPlayersApi: string =
+//   "https://www.balldontlie.io/api/v1/players";
 
 export const getSinglePlayerApi: string =
   "https://www.balldontlie.io/api/v1/players/";
