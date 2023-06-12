@@ -37,6 +37,16 @@ export default function AllPlayers() {
   const [meta, setMeta] = useState<IAllPlayersMeta>({} as IAllPlayersMeta);
   const [searchTerm, setSearchTerm] = useState<string>(existingSearchTerm);
 
+  const [debouncedSearchTerm, setDebouncedSearchTerm] =
+    useState(existingSearchTerm);
+
+  const debouncedHandleSearch = useCallback(
+    debounce((term) => {
+      setDebouncedSearchTerm(term);
+    }, 500),
+    [debounce, setDebouncedSearchTerm]
+  );
+
   const columnDefs = useMemo(
     () => [
       {
@@ -135,16 +145,12 @@ export default function AllPlayers() {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    fetchAllPlayers(page, "", signal);
+    fetchAllPlayers(page, debouncedSearchTerm, signal);
 
     return () => {
       controller.abort();
     };
-  }, [page, fetchAllPlayers]);
-
-  const debouncedFetch = useMemo(() => debounce(fetchAllPlayers, 1000), [
-    fetchAllPlayers,
-  ]);
+  }, [page, fetchAllPlayers, debouncedSearchTerm]);
 
   const handlePageChange = useCallback(
     (_: React.ChangeEvent<unknown>, value: number, searchTerm: string) => {
@@ -159,15 +165,10 @@ export default function AllPlayers() {
     [navigate]
   );
 
-  const handleSearch = useCallback(
-    (term: string, page: number) => {
-      const controller = new AbortController();
-      const signal = controller.signal;
-      setSearchTerm(term);
-      debouncedFetch(page, term, signal);
-    },
-    [debouncedFetch]
-  );
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    debouncedHandleSearch(term);
+  };
 
   return (
     <>
@@ -178,7 +179,7 @@ export default function AllPlayers() {
               id="outlined-basic"
               label="Search Player"
               variant="outlined"
-              onChange={(e) => handleSearch(e.target.value, page)}
+              onChange={(e) => handleSearch(e.target.value)}
               value={searchTerm}
             />
             <AgGridReact
